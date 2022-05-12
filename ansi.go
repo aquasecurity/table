@@ -1,6 +1,10 @@
 package table
 
-import "strings"
+import (
+	"github.com/mattn/go-runewidth"
+	"strings"
+	"unicode/utf8"
+)
 
 type ansiBlob []ansiSegment
 
@@ -19,7 +23,7 @@ func (a ansiBlob) TrimSpace() ansiBlob {
 func (a ansiBlob) Len() int {
 	var c int
 	for _, segment := range a {
-		c += len(segment.value)
+		c += runewidth.StringWidth(segment.value)
 	}
 	return c
 }
@@ -55,15 +59,15 @@ func (a ansiBlob) Cut(index int) (ansiBlob, ansiBlob) {
 			outputAfter += segment.style + segment.value
 			continue
 		}
-		if index < current+len(segment.value) {
+		if index < current+utf8.RuneCountInString(segment.value) {
 			localIndex := index - current
-			outputBefore += segment.value[:localIndex]
-			outputAfter = segment.style + segment.value[localIndex:]
+			outputBefore += string([]rune(segment.value)[:localIndex])
+			outputAfter = segment.style + string([]rune(segment.value)[localIndex:])
 			found = true
 			continue
 		}
 		outputBefore += segment.style + segment.value
-		current += len(segment.value)
+		current += utf8.RuneCountInString(segment.value)
 	}
 	return newANSI(outputBefore), newANSI(outputAfter)
 }
@@ -100,7 +104,7 @@ func newANSI(input string) ansiBlob {
 				inCSI = false
 			}
 		} else if r == '[' && prev == 0x1b {
-			current.value = current.value[:len(current.value)-1]
+			current.value = current.value[:utf8.RuneCountInString(current.value)-1]
 			if current.value != "" {
 				output = append(output, current)
 				current = ansiSegment{}

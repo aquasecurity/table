@@ -440,3 +440,28 @@ func Test_AutoMerge(t *testing.T) {
 		fmt.Println(builder.String())
 	}
 }
+
+func Test_Unicode(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("A", "B", "C")
+	table.AddRow("🔥 unicode 🔥 characters 🔥", "2", "3")
+	table.AddRow("4", "5", "6")
+	table.Render()
+
+	/*
+		The following may look wrong in your editor,
+		but when double-width runes are rendered correctly,
+		this is right.
+	*/
+
+	assert.Equal(t, `
+┌─────────────────────────────┬───┬───┐
+│              A              │ B │ C │
+├─────────────────────────────┼───┼───┤
+│ 🔥 unicode 🔥 characters 🔥 │ 2 │ 3 │
+├─────────────────────────────┼───┼───┤
+│ 4                           │ 5 │ 6 │
+└─────────────────────────────┴───┴───┘
+`, "\n"+builder.String())
+}

@@ -14,6 +14,7 @@ This is a Go module for rendering tables in the terminal.
 - :play_or_pause_button: Individually enable/disable borders, row lines
 - :left_right_arrow: Set alignments on a per-column basis, with separate settings for headers/footers
 - :triangular_ruler: Intelligently wrap/pad/measure ANSI coloured input
+- :fire: Support for double-width unicode characters
 
 ## Examples
 
@@ -452,6 +453,29 @@ func main() {
 
 ```
 <!--/eg-->
+
+## Example: Double-width Unicode
+```go
+package main
+
+import (
+	"os"
+
+	"github.com/aquasecurity/table"
+)
+
+func main() {
+	t := table.New(os.Stdout)
+	t.SetHeaders("A", "B", "C")
+	t.AddRow("🔥 unicode 🔥 characters 🔥", "2", "3")
+	t.AddRow("4", "5", "6")
+	t.Render()
+}
+
+```
+
+#### Output
+![a table with double-width runes](./_examples/11-double-width-unicode/screenshot.png)
 
 ## Example: ANSI Colours
 ```go

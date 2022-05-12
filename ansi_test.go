@@ -41,6 +41,10 @@ func Test_ANSILen(t *testing.T) {
 			input: "\x1b[37mhello \x1b[31mworld!",
 			want:  12,
 		},
+		{
+			input: "🔥 unicode 🔥 characters 🔥",
+			want:  27,
+		},
 	}
 
 	for _, test := range tests {

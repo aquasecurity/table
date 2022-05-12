@@ -2,6 +2,7 @@ package table
 
 import (
 	"fmt"
+	"github.com/mattn/go-runewidth"
 	"io"
 	"strings"
 )
@@ -225,7 +226,7 @@ func (t *Table) formatData() {
 		for i, heading := range t.headers {
 			headerRow.cols = append(headerRow.cols, iCol{
 				original:  heading,
-				width:     len(heading),
+				width:     runewidth.StringWidth(heading),
 				first:     i == 0,
 				last:      i == maxCols-1,
 				alignment: t.getAlignment(i, true, false),
@@ -246,7 +247,7 @@ func (t *Table) formatData() {
 		for colIndex, data := range cols {
 			fRow.cols = append(fRow.cols, iCol{
 				original:  data,
-				width:     len(data),
+				width:     runewidth.StringWidth(data),
 				first:     colIndex == 0,
 				last:      colIndex == maxCols-1,
 				alignment: t.getAlignment(colIndex, false, false),
@@ -267,7 +268,7 @@ func (t *Table) formatData() {
 		for i, footing := range t.footers {
 			footerRow.cols = append(footerRow.cols, iCol{
 				original:  footing,
-				width:     len(footing),
+				width:     runewidth.StringWidth(footing),
 				first:     i == 0,
 				last:      i == maxCols-1,
 				alignment: t.getAlignment(i, false, true),
