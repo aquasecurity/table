@@ -15,7 +15,7 @@ type Table struct {
 	data             [][]string
 	formatted        []iRow
 	headers          [][]string
-	footers          []string
+	footers          [][]string
 	alignments       []Alignment
 	headerAlignments []Alignment
 	footerAlignments []Alignment
@@ -28,6 +28,9 @@ type Table struct {
 	rowLines         bool
 	autoMerge        bool
 	headerStyle      Style
+	headerColspans   map[int]map[int]int
+	contentColspans  map[int]map[int]int
+	footerColspans   map[int]map[int]int
 }
 
 type iRow struct {
@@ -75,12 +78,15 @@ func New(w io.Writer) *Table {
 			Right:  true,
 			Bottom: true,
 		},
-		lineStyle:  StyleNormal,
-		dividers:   UnicodeDividers,
-		wrapTextAt: 60,
-		padding:    1,
-		rowLines:   true,
-		autoMerge:  false,
+		lineStyle:       StyleNormal,
+		dividers:        UnicodeDividers,
+		wrapTextAt:      60,
+		padding:         1,
+		rowLines:        true,
+		autoMerge:       false,
+		headerColspans:  make(map[int]map[int]int),
+		contentColspans: make(map[int]map[int]int),
+		footerColspans:  make(map[int]map[int]int),
 	}
 }
 
@@ -164,7 +170,12 @@ func (t *Table) SetHeaderStyle(s Style) {
 
 // SetFooters set the footers used for the table.
 func (t *Table) SetFooters(footers ...string) {
-	t.footers = footers
+	t.footers = [][]string{footers}
+}
+
+// AddFooters adds a row of footers to the table.
+func (t *Table) AddFooters(footers ...string) {
+	t.footers = append(t.footers, footers)
 }
 
 // SetPadding sets the minimum number of spaces which must surround each column value (horizontally).
@@ -236,17 +247,44 @@ func (t *Table) getAlignment(colIndex int, header bool, footer bool) Alignment {
 	}
 }
 
+// find the most columns we have in any given row, header, or footer
+func (t *Table) findMaxCols() int {
+	var maxCols int
+	for i, r := range t.headers {
+		rowTotal := 0
+		for c := range r {
+			rowTotal += t.getColspan(true, false, i, c)
+		}
+		if rowTotal > maxCols {
+			maxCols = rowTotal
+		}
+	}
+	for i, r := range t.data {
+		rowTotal := 0
+		for c := range r {
+			rowTotal += t.getColspan(false, false, i, c)
+		}
+		if rowTotal > maxCols {
+			maxCols = rowTotal
+		}
+	}
+	for i, r := range t.footers {
+		rowTotal := 0
+		for c := range r {
+			rowTotal += t.getColspan(false, true, i, c)
+		}
+		if rowTotal > maxCols {
+			maxCols = rowTotal
+		}
+	}
+	return maxCols
+}
+
 func (t *Table) formatData() {
 
 	var formatted []iRow
 
-	// find the most columns we have in any given row, header, or footer
-	var maxCols int
-	for _, r := range append(append(t.data, t.headers...), t.footers) {
-		if len(r) > maxCols {
-			maxCols = len(r)
-		}
-	}
+	maxCols := t.findMaxCols()
 
 	// add headers
 	if len(t.headers) > 0 {
@@ -258,13 +296,13 @@ func (t *Table) formatData() {
 				first:  i == 0,
 				last:   i == len(t.headers)-1 && len(t.data)+len(t.footers) == 0,
 			}
-			for i, heading := range headerSet {
+			for j, heading := range headerSet {
 				headerRow.cols = append(headerRow.cols, iCol{
 					original:  heading,
 					width:     runewidth.StringWidth(heading),
-					first:     i == 0,
-					last:      i == maxCols-1,
-					alignment: t.getAlignment(i, true, false),
+					first:     j == 0,
+					last:      j == maxCols-1,
+					alignment: t.getAlignment(j, true, false),
 				})
 			}
 			formatted = append(formatted, headerRow)
@@ -294,23 +332,25 @@ func (t *Table) formatData() {
 
 	// add footers
 	if len(t.footers) > 0 {
-		footerRow := iRow{
-			header: false,
-			footer: true,
-			cols:   nil,
-			first:  len(formatted) == 0,
-			last:   true,
+		for i, footerSet := range t.footers {
+			footerRow := iRow{
+				header: false,
+				footer: true,
+				cols:   nil,
+				first:  len(formatted) == 0,
+				last:   i == len(t.footers)-1,
+			}
+			for j, footing := range footerSet {
+				footerRow.cols = append(footerRow.cols, iCol{
+					original:  footing,
+					width:     runewidth.StringWidth(footing),
+					first:     j == 0,
+					last:      j == maxCols-1,
+					alignment: t.getAlignment(j, false, true),
+				})
+			}
+			formatted = append(formatted, footerRow)
 		}
-		for i, footing := range t.footers {
-			footerRow.cols = append(footerRow.cols, iCol{
-				original:  footing,
-				width:     runewidth.StringWidth(footing),
-				first:     i == 0,
-				last:      i == maxCols-1,
-				alignment: t.getAlignment(i, false, true),
-			})
-		}
-		formatted = append(formatted, footerRow)
 	}
 
 	formatted = t.equaliseRows(formatted, maxCols)
@@ -461,6 +501,28 @@ func (t *Table) renderRow(row iRow, prevHeader bool) {
 	}
 
 	t.renderLineBelow(row)
+}
+
+func (t *Table) getColspan(header bool, footer bool, row int, col int) int {
+	var target map[int]map[int]int
+	switch {
+	case header:
+		target = t.headerColspans
+	case footer:
+		target = t.footerColspans
+	default:
+		target = t.contentColspans
+	}
+
+	r, ok := target[row]
+	if !ok {
+		return 1
+	}
+	c, ok := r[col]
+	if !ok || c < 1 {
+		return 1
+	}
+	return c
 }
 
 // renders the line above a row

@@ -513,3 +513,30 @@ func Test_MultipleHeaderRows(t *testing.T) {
 └──────┴───────┴────────┘
 `, "\n"+builder.String())
 }
+
+func Test_MultipleFooterRows(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("A", "B", "C")
+	table.AddHeaders("D", "E", "F")
+	table.AddRow("1", "22", "333")
+	table.AddRow("4444", "55555", "666666")
+	table.SetFooters("G", "H", "I")
+	table.AddFooters("J", "K", "L")
+	table.Render()
+	assert.Equal(t, `
+┌──────┬───────┬────────┐
+│  A   │   B   │   C    │
+├──────┼───────┼────────┤
+│  D   │   E   │   F    │
+├──────┼───────┼────────┤
+│ 1    │ 22    │ 333    │
+├──────┼───────┼────────┤
+│ 4444 │ 55555 │ 666666 │
+├──────┼───────┼────────┤
+│  G   │   H   │   I    │
+├──────┼───────┼────────┤
+│  J   │   K   │   L    │
+└──────┴───────┴────────┘
+`, "\n"+builder.String())
+}
