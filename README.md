@@ -14,7 +14,7 @@ This is a Go module for rendering tables in the terminal.
 - :play_or_pause_button: Individually enable/disable borders, row lines
 - :left_right_arrow: Set alignments on a per-column basis, with separate settings for headers/footers
 - :triangular_ruler: Intelligently wrap/pad/measure ANSI coloured input
-- :fire: Support for double-width unicode characters
+- :dancers: Support for double-width unicode characters
 - :bar_chart: Load data from CSV files
 
 ## Examples
