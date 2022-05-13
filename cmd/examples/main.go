@@ -43,11 +43,11 @@ func main() {
 		name := strings.Title(strings.ReplaceAll(example.Name(), "-", " ")[3:])
 
 		buffer := bytes.NewBuffer([]byte{})
-		cmd := exec.Command("go", "run", "."+string(filepath.Separator)+example.Name())
+		cmd := exec.Command("go", "run", "."+string(filepath.Separator)+filepath.Join("_examples", example.Name()))
 		cmd.Stdout = buffer
 		cmd.Stderr = os.Stderr
 		cwd, _ := os.Getwd()
-		cmd.Dir = filepath.Join(cwd, "_examples")
+		cmd.Dir = cwd
 		if err := cmd.Run(); err != nil {
 			panic(err)
 		}
