@@ -17,6 +17,8 @@ This is a Go module for rendering tables in the terminal.
 - :dancers: Support for double-width unicode characters
 - :bar_chart: Load data from CSV files
 
+Check out the [documentation](https://pkg.go.dev/github.com/aquasecurity/table) for full features/usage.
+
 ## Examples
 
 <!--eg-->
