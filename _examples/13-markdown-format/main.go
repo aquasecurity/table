@@ -8,17 +8,7 @@ import (
 
 func main() {
 	t := table.New(os.Stdout)
-	t.SetDividers(table.Dividers{
-		ALL: "|",
-		NES: "|",
-		NSW: "|",
-		NE:  "|",
-		NW:  "|",
-		SW:  "|",
-		ES:  "|",
-		EW:  "-",
-		NS:  "|",
-	})
+	t.SetDividers(table.MarkdownDividers)
 
 	t.SetBorderTop(false)
 	t.SetBorderBottom(false)
