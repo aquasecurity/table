@@ -607,3 +607,53 @@ func Test_HeaderColSpanSmallerHeading(t *testing.T) {
 └───┴───┴───┘
 `, "\n"+builder.String())
 }
+
+func Test_HeaderColSpanTrivyKubernetesStyle(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("Namespace", "Resource", "Vulnerabilities", "Misconfigurations")
+	table.AddHeaders("", "", "Critical", "High", "Critical", "High")
+	table.SetHeaderColSpans(0, 1, 1, 2, 2)
+	table.AddRow("default", "Deployment/app", "2", "5", "0", "3")
+	table.AddRow("default", "Ingress/test", "-", "-", "1", "0")
+	table.AddRow("default", "Service/test", "0", "0", "3", "0")
+	table.Render()
+	assertMultilineEqual(t, `
+┌───────────┬────────────────┬─────────────────┬───────────────────┐
+│ Namespace │    Resource    │ Vulnerabilities │ Misconfigurations │
+│           │                ├──────────┬──────┼───────────┬───────┤
+│           │                │ Critical │ High │ Critical  │ High  │
+├───────────┼────────────────┼──────────┼──────┼───────────┼───────┤
+│ default   │ Deployment/app │ 2        │ 5    │ 0         │ 3     │
+├───────────┼────────────────┼──────────┼──────┼───────────┼───────┤
+│ default   │ Ingress/test   │ -        │ -    │ 1         │ 0     │
+├───────────┼────────────────┼──────────┼──────┼───────────┼───────┤
+│ default   │ Service/test   │ 0        │ 0    │ 3         │ 0     │
+└───────────┴────────────────┴──────────┴──────┴───────────┴───────┘
+`, "\n"+builder.String())
+}
+
+func Test_HeaderColSpanTrivyKubernetesStyleFull(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("Namespace", "Resource", "Vulnerabilities", "Misconfigurations")
+	table.AddHeaders("", "", "Critical", "High", "Medium", "Low", "Unknown", "Critical", "High", "Medium", "Low", "Unknown")
+	table.SetHeaderColSpans(0, 1, 1, 5, 5)
+	table.AddRow("default", "Deployment/app", "2", "5", "7", "8", "0", "0", "3", "5", "19", "0")
+	table.AddRow("default", "Ingress/test", "-", "-", "-", "-", "-", "1", "0", "2", "17", "0")
+	table.AddRow("default", "Service/test", "0", "0", "0", "1", "0", "3", "0", "4", "9", "0")
+	table.Render()
+	assertMultilineEqual(t, `
+┌───────────┬────────────────┬──────────────────────────────────────────┬──────────────────────────────────────────┐
+│ Namespace │    Resource    │             Vulnerabilities              │            Misconfigurations             │
+│           │                ├──────────┬──────┬────────┬─────┬─────────┼──────────┬──────┬────────┬─────┬─────────┤
+│           │                │ Critical │ High │ Medium │ Low │ Unknown │ Critical │ High │ Medium │ Low │ Unknown │
+├───────────┼────────────────┼──────────┼──────┼────────┼─────┼─────────┼──────────┼──────┼────────┼─────┼─────────┤
+│ default   │ Deployment/app │ 2        │ 5    │ 7      │ 8   │ 0       │ 0        │ 3    │ 5      │ 19  │ 0       │
+├───────────┼────────────────┼──────────┼──────┼────────┼─────┼─────────┼──────────┼──────┼────────┼─────┼─────────┤
+│ default   │ Ingress/test   │ -        │ -    │ -      │ -   │ -       │ 1        │ 0    │ 2      │ 17  │ 0       │
+├───────────┼────────────────┼──────────┼──────┼────────┼─────┼─────────┼──────────┼──────┼────────┼─────┼─────────┤
+│ default   │ Service/test   │ 0        │ 0    │ 0      │ 1   │ 0       │ 3        │ 0    │ 4      │ 9   │ 0       │
+└───────────┴────────────────┴──────────┴──────┴────────┴─────┴─────────┴──────────┴──────┴────────┴─────┴─────────┘
+`, "\n"+builder.String())
+}

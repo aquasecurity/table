@@ -485,14 +485,11 @@ func (t *Table) applyColSpans(formatted []iRow) []iRow {
 		// calculate width required to render the cells beneath/above this cell - plus padding/dividers between them
 		var childrenWidth int
 		for i, row := range formatted {
-			if i == job.row {
+			if i == job.row { // skip the row we're working on
 				continue
 			}
 			var rowWidth int
 			for j := job.col; j < job.col+job.span; j++ {
-				if row.cols[j].span > 1 {
-					continue
-				}
 				rowWidth += row.cols[j].width
 			}
 			if rowWidth > childrenWidth {
@@ -502,6 +499,43 @@ func (t *Table) applyColSpans(formatted []iRow) []iRow {
 		childrenWidth += (job.span - 1) * (1 + (2 * t.padding))
 
 		fmt.Printf("Target width: %d Child width: %d", targetWidth, childrenWidth)
+
+		switch {
+		case childrenWidth == targetWidth:
+			// everything is somehow magically fine
+		case childrenWidth > targetWidth:
+			// we need to grow our target cell to make it aligned with the children
+			for i := range target.lines {
+				target.lines[i] = align(target.lines[i], childrenWidth, target.alignment)
+			}
+			target.width = childrenWidth
+			formatted[job.row].cols[job.col] = target
+		default:
+			// we need to extend the children to align with the wide cell
+			// we can do this by sharing the extra space between them
+			available := targetWidth - childrenWidth
+			share := available / job.span
+			remainder := available - (share * (job.span - 1))
+
+			// allocate each child some of the room
+			for i, row := range formatted {
+				if i == job.row { // skip the row we're working on
+					continue
+				}
+				for j := job.col; j < job.col+job.span; j++ {
+					amount := share
+					if j == job.col+job.span-1 {
+						amount = remainder
+					}
+					row.cols[j].width += amount
+					for k, line := range row.cols[j].lines {
+						row.cols[j].lines[k] = align(line, row.cols[j].width, row.cols[j].alignment)
+					}
+				}
+				formatted[i] = row
+			}
+
+		}
 
 	}
 	return formatted
