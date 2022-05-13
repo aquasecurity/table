@@ -28,6 +28,9 @@ func main() {
 
 	var output string
 	for _, example := range examples {
+		if !example.IsDir() {
+			continue
+		}
 		source, err := ioutil.ReadFile(filepath.Join("_examples", example.Name(), "main.go"))
 		if err != nil {
 			panic(err)
@@ -40,11 +43,11 @@ func main() {
 		name := strings.Title(strings.ReplaceAll(example.Name(), "-", " ")[3:])
 
 		buffer := bytes.NewBuffer([]byte{})
-		cmd := exec.Command("go", "run", "."+string(filepath.Separator)+filepath.Join("_examples", example.Name()))
+		cmd := exec.Command("go", "run", "."+string(filepath.Separator)+example.Name())
 		cmd.Stdout = buffer
 		cmd.Stderr = os.Stderr
 		cwd, _ := os.Getwd()
-		cmd.Dir = cwd
+		cmd.Dir = filepath.Join(cwd, "_examples")
 		if err := cmd.Run(); err != nil {
 			panic(err)
 		}
