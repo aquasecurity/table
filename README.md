@@ -488,11 +488,11 @@ func main() {
 ┌───────────────────┬────────┬─────────────────┐
 │      System       │ Status │   Last Check    │
 ├───────────────────┼────────┼─────────────────┤
-│ Life Support      │ OK     │ May 13 09:09:30 │
+│ Life Support      │ OK     │ May 13 11:10:06 │
 ├───────────────────┤        ├─────────────────┤
-│ Nuclear Generator │        │ May 13 09:08:30 │
+│ Nuclear Generator │        │ May 13 11:09:06 │
 ├───────────────────┼────────┼─────────────────┤
-│ Weapons Systems   │ FAIL   │ May 13 09:09:30 │
+│ Weapons Systems   │ FAIL   │ May 13 11:10:06 │
 ├───────────────────┼────────┤                 │
 │ Shields           │ OK     │                 │
 └───────────────────┴────────┴─────────────────┘
@@ -536,6 +536,57 @@ func main() {
 ├────┼────────────┼────────────────────────────────────────────┤
 │ 3  │ 2022-05-13 │ Incredible!                                │
 └────┴────────────┴────────────────────────────────────────────┘
+
+```
+
+### Example: Markdown Format
+```go
+package main
+
+import (
+	"os"
+
+	"github.com/aquasecurity/table"
+)
+
+func main() {
+	t := table.New(os.Stdout)
+	t.SetDividers(table.Dividers{
+		ALL: "|",
+		NES: "|",
+		NSW: "|",
+		NE:  "|",
+		NW:  "|",
+		SW:  "|",
+		ES:  "|",
+		EW:  "-",
+		NS:  "|",
+	})
+
+	t.SetBorderTop(false)
+	t.SetBorderBottom(false)
+	t.SetRowLines(false)
+
+	t.SetHeaders("ID", "Fruit", "Stock")
+
+	t.AddRow("1", "Apple", "14")
+	t.AddRow("2", "Banana", "88,041")
+	t.AddRow("3", "Cherry", "342")
+	t.AddRow("4", "Dragonfruit", "1")
+
+	t.Render()
+}
+
+```
+
+#### Output
+```
+| ID |    Fruit    | Stock  |
+|----|-------------|--------|
+| 1  | Apple       | 14     |
+| 2  | Banana      | 88,041 |
+| 3  | Cherry      | 342    |
+| 4  | Dragonfruit | 1      |
 
 ```
 <!--/eg-->
