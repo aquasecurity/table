@@ -28,9 +28,9 @@ type Table struct {
 	rowLines         bool
 	autoMerge        bool
 	headerStyle      Style
-	headerColspans   map[int]map[int]int
-	contentColspans  map[int]map[int]int
-	footerColspans   map[int]map[int]int
+	headerColspans   map[int][]int
+	contentColspans  map[int][]int
+	footerColspans   map[int][]int
 }
 
 type iRow struct {
@@ -52,6 +52,16 @@ type iCol struct {
 	height     int
 	mergeAbove bool
 	alignment  Alignment
+}
+
+func (c iCol) MaxWidth() int {
+	var maxWidth int
+	for _, line := range c.lines {
+		if line.Len() > maxWidth {
+			maxWidth = line.Len()
+		}
+	}
+	return maxWidth
 }
 
 // Borders dictates whether to draw lines at the extreme edges of the table
@@ -84,9 +94,9 @@ func New(w io.Writer) *Table {
 		padding:         1,
 		rowLines:        true,
 		autoMerge:       false,
-		headerColspans:  make(map[int]map[int]int),
-		contentColspans: make(map[int]map[int]int),
-		footerColspans:  make(map[int]map[int]int),
+		headerColspans:  make(map[int][]int),
+		contentColspans: make(map[int][]int),
+		footerColspans:  make(map[int][]int),
 	}
 }
 
@@ -303,6 +313,7 @@ func (t *Table) formatData() {
 					first:     j == 0,
 					last:      j == maxCols-1,
 					alignment: t.getAlignment(j, true, false),
+					span:      t.getColspan(true, false, i, j),
 				})
 			}
 			formatted = append(formatted, headerRow)
@@ -325,6 +336,7 @@ func (t *Table) formatData() {
 				first:     colIndex == 0,
 				last:      colIndex == maxCols-1,
 				alignment: t.getAlignment(colIndex, false, false),
+				span:      t.getColspan(false, false, rowIndex, colIndex),
 			})
 		}
 		formatted = append(formatted, fRow)
@@ -347,6 +359,7 @@ func (t *Table) formatData() {
 					first:     j == 0,
 					last:      j == maxCols-1,
 					alignment: t.getAlignment(j, false, true),
+					span:      t.getColspan(false, true, i, j),
 				})
 			}
 			formatted = append(formatted, footerRow)
@@ -358,16 +371,24 @@ func (t *Table) formatData() {
 	t.formatted = t.mergeContent(formatted)
 }
 
+func (t *Table) calcColumnWidth(rowIndex int, row iRow) int {
+	rowTotal := 0
+	for c := range row.cols {
+		rowTotal += t.getColspan(row.header, row.footer, rowIndex, c)
+	}
+	return rowTotal
+}
+
 func (t *Table) equaliseRows(formatted []iRow, maxCols int) []iRow {
-	// ensure all rows have the same number of columns
+	// ensure all rows have the same number of columns (taking colspan into account)
 	for i, row := range formatted {
 		if len(row.cols) > 0 {
 			row.cols[len(row.cols)-1].last = false
 		}
-		for len(row.cols) < maxCols {
+		for t.calcColumnWidth(i, row) < maxCols {
 			row.cols = append(row.cols, iCol{
 				first: len(row.cols) == 0,
-				last:  len(row.cols)-1 == maxCols,
+				span:  1,
 			})
 		}
 		if len(row.cols) > 0 {
@@ -403,20 +424,27 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 	}
 
 	// set width of each col, and align text
-	for c := 0; c < len(formatted[0].cols); c++ { // for each col
+	for c := 0; c < t.calcColumnWidth(0, formatted[0]); c++ { // for each col
 
 		// find max width for column across all rows
 		maxWidth := 0
 		for _, row := range formatted {
-			for _, line := range row.cols[c].lines {
-				if line.Len() > maxWidth {
-					maxWidth = line.Len()
-				}
+
+			if c >= len(row.cols) || row.cols[c].span > 1 {
+				// ignore columns with a colspan > 1 for now, we'll apply those next
+				continue
+			}
+
+			if row.cols[c].MaxWidth() > maxWidth {
+				maxWidth = row.cols[c].MaxWidth()
 			}
 		}
 
 		// set uniform col width, and align all content
 		for r, row := range formatted {
+			if c >= len(row.cols) {
+				continue
+			}
 			row.cols[c].width = maxWidth
 			for l, line := range row.cols[c].lines {
 				row.cols[c].lines[l] = align(line, maxWidth, row.cols[c].alignment)
@@ -425,6 +453,57 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 		}
 	}
 
+	return t.applyColSpans(formatted)
+}
+
+func (t *Table) applyColSpans(formatted []iRow) []iRow {
+	type colSpanJob struct {
+		row  int
+		col  int
+		span int
+	}
+	var jobs []colSpanJob
+	for i, row := range formatted {
+		for j, col := range row.cols {
+			if col.span > 1 {
+				jobs = append(jobs, colSpanJob{
+					row:  i,
+					col:  j,
+					span: col.span,
+				})
+			}
+		}
+	}
+	for _, job := range jobs {
+
+		// grab the cell that has a col span applied
+		target := formatted[job.row].cols[job.col]
+
+		// calculate the width required for this cell
+		targetWidth := target.MaxWidth()
+
+		// calculate width required to render the cells beneath/above this cell - plus padding/dividers between them
+		var childrenWidth int
+		for i, row := range formatted {
+			if i == job.row {
+				continue
+			}
+			var rowWidth int
+			for j := job.col; j < job.col+job.span; j++ {
+				if row.cols[j].span > 1 {
+					continue
+				}
+				rowWidth += row.cols[j].width
+			}
+			if rowWidth > childrenWidth {
+				childrenWidth = rowWidth
+			}
+		}
+		childrenWidth += (job.span - 1) * (1 + (2 * t.padding))
+
+		fmt.Printf("Target width: %d Child width: %d", targetWidth, childrenWidth)
+
+	}
 	return formatted
 }
 
@@ -503,8 +582,23 @@ func (t *Table) renderRow(row iRow, prevHeader bool) {
 	t.renderLineBelow(row)
 }
 
+// SetHeaderColSpans sets a column span for each column in the given header row.
+func (t *Table) SetHeaderColSpans(rowIndex int, colSpans ...int) {
+	t.headerColspans[rowIndex] = colSpans
+}
+
+// SetColSpans sets a column span for each column in the given row.
+func (t *Table) SetColSpans(rowIndex int, colSpans ...int) {
+	t.contentColspans[rowIndex] = colSpans
+}
+
+// SetFooterColSpans sets a column span for each column in the given footer row.
+func (t *Table) SetFooterColSpans(rowIndex int, colSpans ...int) {
+	t.footerColspans[rowIndex] = colSpans
+}
+
 func (t *Table) getColspan(header bool, footer bool, row int, col int) int {
-	var target map[int]map[int]int
+	var target map[int][]int
 	switch {
 	case header:
 		target = t.headerColspans
@@ -513,13 +607,15 @@ func (t *Table) getColspan(header bool, footer bool, row int, col int) int {
 	default:
 		target = t.contentColspans
 	}
-
 	r, ok := target[row]
 	if !ok {
 		return 1
 	}
-	c, ok := r[col]
-	if !ok || c < 1 {
+	if col >= len(r) {
+		return 1
+	}
+	c := r[col]
+	if c < 1 {
 		return 1
 	}
 	return c
