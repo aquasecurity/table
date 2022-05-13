@@ -490,11 +490,11 @@ func main() {
 ┌───────────────────┬────────┬─────────────────┐
 │      System       │ Status │   Last Check    │
 ├───────────────────┼────────┼─────────────────┤
-│ Life Support      │ OK     │ May 13 11:13:11 │
+│ Life Support      │ OK     │ May 13 16:38:14 │
 ├───────────────────┤        ├─────────────────┤
-│ Nuclear Generator │        │ May 13 11:12:11 │
+│ Nuclear Generator │        │ May 13 16:37:14 │
 ├───────────────────┼────────┼─────────────────┤
-│ Weapons Systems   │ FAIL   │ May 13 11:13:11 │
+│ Weapons Systems   │ FAIL   │ May 13 16:38:14 │
 ├───────────────────┼────────┤                 │
 │ Shields           │ OK     │                 │
 └───────────────────┴────────┴─────────────────┘
@@ -579,6 +579,46 @@ func main() {
 | 2  | Banana      | 88,041 |
 | 3  | Cherry      | 342    |
 | 4  | Dragonfruit | 1      |
+
+```
+
+### Example: Header Colspans
+```go
+package main
+
+import (
+	"os"
+
+	"github.com/aquasecurity/table"
+)
+
+func main() {
+	t := table.New(os.Stdout)
+	t.SetHeaders("Namespace", "Resource", "Vulnerabilities", "Misconfigurations")
+	t.AddHeaders("Namespace", "Resource", "Critical", "High", "Medium", "Low", "Unknown", "Critical", "High", "Medium", "Low", "Unknown")
+	t.SetHeaderColSpans(0, 1, 1, 5, 5)
+	t.SetAutoMergeHeaders(true)
+	t.AddRow("default", "Deployment/app", "2", "5", "7", "8", "0", "0", "3", "5", "19", "0")
+	t.AddRow("default", "Ingress/test", "-", "-", "-", "-", "-", "1", "0", "2", "17", "0")
+	t.AddRow("default", "Service/test", "0", "0", "0", "1", "0", "3", "0", "4", "9", "0")
+	t.Render()
+}
+
+```
+
+#### Output
+```
+┌───────────┬────────────────┬──────────────────────────────────────────┬──────────────────────────────────────────┐
+│ Namespace │    Resource    │             Vulnerabilities              │            Misconfigurations             │
+│           │                ├──────────┬──────┬────────┬─────┬─────────┼──────────┬──────┬────────┬─────┬─────────┤
+│           │                │ Critical │ High │ Medium │ Low │ Unknown │ Critical │ High │ Medium │ Low │ Unknown │
+├───────────┼────────────────┼──────────┼──────┼────────┼─────┼─────────┼──────────┼──────┼────────┼─────┼─────────┤
+│ default   │ Deployment/app │ 2        │ 5    │ 7      │ 8   │ 0       │ 0        │ 3    │ 5      │ 19  │ 0       │
+├───────────┼────────────────┼──────────┼──────┼────────┼─────┼─────────┼──────────┼──────┼────────┼─────┼─────────┤
+│ default   │ Ingress/test   │ -        │ -    │ -      │ -   │ -       │ 1        │ 0    │ 2      │ 17  │ 0       │
+├───────────┼────────────────┼──────────┼──────┼────────┼─────┼─────────┼──────────┼──────┼────────┼─────┼─────────┤
+│ default   │ Service/test   │ 0        │ 0    │ 0      │ 1   │ 0       │ 3        │ 0    │ 4      │ 9   │ 0       │
+└───────────┴────────────────┴──────────┴──────┴────────┴─────┴─────────┴──────────┴──────┴────────┴─────┴─────────┘
 
 ```
 <!--/eg-->

@@ -8,6 +8,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func assertMultilineEqual(t *testing.T, expected string, actual string) {
+	if expected != actual {
+		t.Errorf(`Error: Tables are not equal.
+
+Expected: %s
+Actual: %s
+`, expected, actual)
+	}
+}
+
 func Test_BasicTable(t *testing.T) {
 	builder := &strings.Builder{}
 	table := New(builder)
@@ -15,7 +25,7 @@ func Test_BasicTable(t *testing.T) {
 	table.AddRow("1", "2", "3")
 	table.AddRow("4", "5", "6")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌───┬───┬───┐
 │ A │ B │ C │
 ├───┼───┼───┤
@@ -30,7 +40,7 @@ func Test_EmptyTable(t *testing.T) {
 	builder := &strings.Builder{}
 	table := New(builder)
 	table.Render()
-	assert.Equal(t, ``, builder.String())
+	assertMultilineEqual(t, ``, builder.String())
 }
 
 func Test_AddRows(t *testing.T) {
@@ -39,7 +49,7 @@ func Test_AddRows(t *testing.T) {
 	table.SetHeaders("A", "B", "C")
 	table.AddRows([]string{"1", "2", "3"}, []string{"4", "5", "6"})
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌───┬───┬───┐
 │ A │ B │ C │
 ├───┼───┼───┤
@@ -56,7 +66,7 @@ func Test_NoHeaders(t *testing.T) {
 	table.AddRow("1", "2", "3")
 	table.AddRow("4", "5", "6")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌───┬───┬───┐
 │ 1 │ 2 │ 3 │
 ├───┼───┼───┤
@@ -72,7 +82,7 @@ func Test_Footers(t *testing.T) {
 	table.AddRow("1", "2", "3")
 	table.AddRow("4", "5", "6")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌───┬───┬───┐
 │ 1 │ 2 │ 3 │
 ├───┼───┼───┤
@@ -90,7 +100,7 @@ func Test_VaryingWidths(t *testing.T) {
 	table.AddRow("111111", "2", "3")
 	table.AddRow("4", "5555555555", "6")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌────────┬────────────┬───────────┐
 │  AAA   │   BBBBB    │ CCCCCCCCC │
 ├────────┼────────────┼───────────┤
@@ -108,7 +118,7 @@ func Test_Wrapping(t *testing.T) {
 	table.AddRow("1", "Jim", "")
 	table.AddRow("2", "Bob", "This is a very, very, very, very, very, long sentence which will surely wrap?")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌────┬──────┬─────────────────────────────────────────────────────────────┐
 │ ID │ Name │                            Notes                            │
 ├────┼──────┼─────────────────────────────────────────────────────────────┤
@@ -127,7 +137,7 @@ func Test_MultipleLines(t *testing.T) {
 	table.AddRow("1", "Jim", "")
 	table.AddRow("2", "Bob", "This is a sentence.\nThis is another sentence.\nAnd yet another one!")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌────┬──────┬───────────────────────────┐
 │ ID │ Name │           Notes           │
 ├────┼──────┼───────────────────────────┤
@@ -148,7 +158,7 @@ func Test_Padding_None(t *testing.T) {
 	table.AddRow("2", "Bob", "This is a sentence.\nThis is another sentence.\nAnd yet another one!")
 	table.SetPadding(0)
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌──┬────┬─────────────────────────┐
 │ID│Name│          Notes          │
 ├──┼────┼─────────────────────────┤
@@ -169,7 +179,7 @@ func Test_Padding_Lots(t *testing.T) {
 	table.AddRow("2", "Bob", "Bad")
 	table.SetPadding(10)
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌──────────────────────┬────────────────────────┬─────────────────────────┐
 │          ID          │          Name          │          Notes          │
 ├──────────────────────┼────────────────────────┼─────────────────────────┤
@@ -188,7 +198,7 @@ func Test_AlignmentDefaults(t *testing.T) {
 	table.AddRow("2", "Bob", "See above.")
 	table.AddRow("99999", "John Verylongname", "Bad")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌───────┬───────────────────┬────────────────────────────────────────┐
 │  ID   │       Name        │                 Notes                  │
 ├───────┼───────────────────┼────────────────────────────────────────┤
@@ -211,7 +221,7 @@ func Test_AlignmentCustom(t *testing.T) {
 	table.SetFooterAlignment(AlignRight, AlignLeft, AlignCenter)
 	table.AddRow("Please", "be", "aligned")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌────────┬──────┬─────────┐
 │ ID     │ Name │   Notes │
 ├────────┼──────┼─────────┤
@@ -230,7 +240,7 @@ func Test_NonDefaultDividers(t *testing.T) {
 	table.AddRow("1", "2", "3")
 	table.AddRow("4", "5", "6")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ╭───┬───┬───╮
 │ A │ B │ C │
 ├───┼───┼───┤
@@ -251,7 +261,7 @@ func Test_UnequalRows(t *testing.T) {
 	table.AddRow("4", "5", "6")
 	table.AddRow("7", "8", "9", "10")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌───┬───┬───┬────┐
 │ A │ B │ C │    │
 ├───┼───┼───┼────┤
@@ -276,7 +286,7 @@ func Test_NoBorders(t *testing.T) {
 	table.AddRow("1", "2", "3")
 	table.AddRow("4", "5", "6")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
  A │ B │ C 
 ───┼───┼───
  1 │ 2 │ 3 
@@ -293,7 +303,7 @@ func Test_NoLeftBorder(t *testing.T) {
 	table.AddRow("1", "2", "3")
 	table.AddRow("4", "5", "6")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ───┬───┬───┐
  A │ B │ C │
 ───┼───┼───┤
@@ -312,7 +322,7 @@ func Test_NoRightBorder(t *testing.T) {
 	table.AddRow("1", "2", "3")
 	table.AddRow("4", "5", "6")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌───┬───┬───
 │ A │ B │ C 
 ├───┼───┼───
@@ -331,7 +341,7 @@ func Test_NoTopBorder(t *testing.T) {
 	table.AddRow("1", "2", "3")
 	table.AddRow("4", "5", "6")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 │ A │ B │ C │
 ├───┼───┼───┤
 │ 1 │ 2 │ 3 │
@@ -349,7 +359,7 @@ func Test_NoBottomBorder(t *testing.T) {
 	table.AddRow("1", "2", "3")
 	table.AddRow("4", "5", "6")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌───┬───┬───┐
 │ A │ B │ C │
 ├───┼───┼───┤
@@ -385,7 +395,7 @@ func Test_PrerenderedANSI(t *testing.T) {
 	table.AddRow("1", "\x1b[37m2\x1b[0m", "3")
 	table.AddRow("4", "5", "6")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌───┬───┬───┐
 │ A │ B │ C │
 ├───┼───┼───┤
@@ -405,7 +415,7 @@ func Test_NoRowLines(t *testing.T) {
 	table.AddRow("4", "5", "6")
 	table.AddRow("7", "8", "9")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌───┬───┬───┐
 │ A │ B │ C │
 ├───┼───┼───┤
@@ -425,7 +435,7 @@ func Test_AutoMerge(t *testing.T) {
 	table.AddRow("", "2", "6")
 	table.AddRow("1", "2", "6")
 	table.Render()
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌───┬───┬───┐
 │ A │ B │ 3 │
 ├───┼───┼───┤
@@ -455,7 +465,7 @@ func Test_Unicode(t *testing.T) {
 		this is right.
 	*/
 
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌─────────────────────────────┬───┬───┐
 │              A              │ B │ C │
 ├─────────────────────────────┼───┼───┤
@@ -480,7 +490,7 @@ func TestCSV(t *testing.T) {
 	}
 	table.Render()
 
-	assert.Equal(t, `
+	assertMultilineEqual(t, `
 ┌────┬────────────┬────────────────────────────────────────────┐
 │ Id │    Date    │                  Message                   │
 ├────┼────────────┼────────────────────────────────────────────┤
@@ -491,4 +501,213 @@ func TestCSV(t *testing.T) {
 │ 3  │ 2022-05-13 │ Incredible!                                │
 └────┴────────────┴────────────────────────────────────────────┘
 `, "\n"+builder.String())
+}
+
+func Test_MultipleHeaderRows(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("A", "B", "C")
+	table.AddHeaders("D", "E", "F")
+	table.AddRow("1", "22", "333")
+	table.AddRow("4444", "55555", "666666")
+	table.Render()
+	assertMultilineEqual(t, `
+┌──────┬───────┬────────┐
+│  A   │   B   │   C    │
+├──────┼───────┼────────┤
+│  D   │   E   │   F    │
+├──────┼───────┼────────┤
+│ 1    │ 22    │ 333    │
+├──────┼───────┼────────┤
+│ 4444 │ 55555 │ 666666 │
+└──────┴───────┴────────┘
+`, "\n"+builder.String())
+}
+
+func Test_MultipleFooterRows(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("A", "B", "C")
+	table.AddHeaders("D", "E", "F")
+	table.AddRow("1", "22", "333")
+	table.AddRow("4444", "55555", "666666")
+	table.SetFooters("G", "H", "I")
+	table.AddFooters("J", "K", "L")
+	table.Render()
+	assertMultilineEqual(t, `
+┌──────┬───────┬────────┐
+│  A   │   B   │   C    │
+├──────┼───────┼────────┤
+│  D   │   E   │   F    │
+├──────┼───────┼────────┤
+│ 1    │ 22    │ 333    │
+├──────┼───────┼────────┤
+│ 4444 │ 55555 │ 666666 │
+├──────┼───────┼────────┤
+│  G   │   H   │   I    │
+├──────┼───────┼────────┤
+│  J   │   K   │   L    │
+└──────┴───────┴────────┘
+`, "\n"+builder.String())
+}
+
+func Test_HeaderColSpan(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("A", "B & C")
+	table.SetHeaderColSpans(0, 1, 2)
+	table.AddRow("1", "2", "3")
+	table.AddRow("4", "5", "6")
+	table.Render()
+	assertMultilineEqual(t, `
+┌───┬───────┐
+│ A │ B & C │
+├───┼───┬───┤
+│ 1 │ 2 │ 3 │
+├───┼───┼───┤
+│ 4 │ 5 │ 6 │
+└───┴───┴───┘
+`, "\n"+builder.String())
+}
+
+func Test_HeaderColSpanLargerHeading(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("A", "This is a long heading")
+	table.SetHeaderColSpans(0, 1, 2)
+	table.AddRow("1", "2", "3")
+	table.AddRow("4", "5", "6")
+	table.Render()
+	assertMultilineEqual(t, `
+┌───┬────────────────────────┐
+│ A │ This is a long heading │
+├───┼───────────┬────────────┤
+│ 1 │ 2         │ 3          │
+├───┼───────────┼────────────┤
+│ 4 │ 5         │ 6          │
+└───┴───────────┴────────────┘
+`, "\n"+builder.String())
+}
+
+func Test_HeaderColSpanSmallerHeading(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("A", "B")
+	table.SetHeaderColSpans(0, 1, 2)
+	table.AddRow("1", "2", "This is some long data")
+	table.AddRow("4", "5", "6")
+	table.Render()
+	assertMultilineEqual(t, `
+┌───┬────────────────────────────┐
+│ A │             B              │
+├───┼───┬────────────────────────┤
+│ 1 │ 2 │ This is some long data │
+├───┼───┼────────────────────────┤
+│ 4 │ 5 │ 6                      │
+└───┴───┴────────────────────────┘
+`, "\n"+builder.String())
+}
+
+func Test_HeaderColSpanTrivyKubernetesStyle(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("Namespace", "Resource", "Vulnerabilities", "Misconfigurations")
+	table.AddHeaders("Namespace", "Resource", "Critical", "High", "Critical", "High")
+	table.SetHeaderColSpans(0, 1, 1, 2, 2)
+	table.SetAutoMergeHeaders(true)
+	table.AddRow("default", "Deployment/app", "2", "5", "0", "3")
+	table.AddRow("default", "Ingress/test", "-", "-", "1", "0")
+	table.AddRow("default", "Service/test", "0", "0", "3", "0")
+	table.Render()
+	assertMultilineEqual(t, `
+┌───────────┬────────────────┬─────────────────┬───────────────────┐
+│ Namespace │    Resource    │ Vulnerabilities │ Misconfigurations │
+│           │                ├──────────┬──────┼───────────┬───────┤
+│           │                │ Critical │ High │ Critical  │ High  │
+├───────────┼────────────────┼──────────┼──────┼───────────┼───────┤
+│ default   │ Deployment/app │ 2        │ 5    │ 0         │ 3     │
+├───────────┼────────────────┼──────────┼──────┼───────────┼───────┤
+│ default   │ Ingress/test   │ -        │ -    │ 1         │ 0     │
+├───────────┼────────────────┼──────────┼──────┼───────────┼───────┤
+│ default   │ Service/test   │ 0        │ 0    │ 3         │ 0     │
+└───────────┴────────────────┴──────────┴──────┴───────────┴───────┘
+`, "\n"+builder.String())
+}
+
+func Test_HeaderColSpanTrivyKubernetesStyleFull(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("Namespace", "Resource", "Vulnerabilities", "Misconfigurations")
+	table.AddHeaders("Namespace", "Resource", "Critical", "High", "Medium", "Low", "Unknown", "Critical", "High", "Medium", "Low", "Unknown")
+	table.SetHeaderColSpans(0, 1, 1, 5, 5)
+	table.SetAutoMergeHeaders(true)
+	table.AddRow("default", "Deployment/app", "2", "5", "7", "8", "0", "0", "3", "5", "19", "0")
+	table.AddRow("default", "Ingress/test", "-", "-", "-", "-", "-", "1", "0", "2", "17", "0")
+	table.AddRow("default", "Service/test", "0", "0", "0", "1", "0", "3", "0", "4", "9", "0")
+	table.Render()
+	assertMultilineEqual(t, `
+┌───────────┬────────────────┬──────────────────────────────────────────┬──────────────────────────────────────────┐
+│ Namespace │    Resource    │             Vulnerabilities              │            Misconfigurations             │
+│           │                ├──────────┬──────┬────────┬─────┬─────────┼──────────┬──────┬────────┬─────┬─────────┤
+│           │                │ Critical │ High │ Medium │ Low │ Unknown │ Critical │ High │ Medium │ Low │ Unknown │
+├───────────┼────────────────┼──────────┼──────┼────────┼─────┼─────────┼──────────┼──────┼────────┼─────┼─────────┤
+│ default   │ Deployment/app │ 2        │ 5    │ 7      │ 8   │ 0       │ 0        │ 3    │ 5      │ 19  │ 0       │
+├───────────┼────────────────┼──────────┼──────┼────────┼─────┼─────────┼──────────┼──────┼────────┼─────┼─────────┤
+│ default   │ Ingress/test   │ -        │ -    │ -      │ -   │ -       │ 1        │ 0    │ 2      │ 17  │ 0       │
+├───────────┼────────────────┼──────────┼──────┼────────┼─────┼─────────┼──────────┼──────┼────────┼─────┼─────────┤
+│ default   │ Service/test   │ 0        │ 0    │ 0      │ 1   │ 0       │ 3        │ 0    │ 4      │ 9   │ 0       │
+└───────────┴────────────────┴──────────┴──────┴────────┴─────┴─────────┴──────────┴──────┴────────┴─────┴─────────┘
+`, "\n"+builder.String())
+}
+
+func Test_RelativeColIndexesSimple(t *testing.T) {
+
+	row := iRow{
+		cols: []iCol{
+			{
+				span: 1,
+			},
+			{
+				span: 1,
+			},
+			{
+				span: 1,
+			},
+		},
+	}
+
+	table := New(nil)
+	assert.Equal(t, 0, table.getRealIndex(row, 0))
+	assert.Equal(t, 1, table.getRealIndex(row, 1))
+	assert.Equal(t, 2, table.getRealIndex(row, 2))
+	assert.Equal(t, 0, table.getRelativeIndex(row, 0))
+	assert.Equal(t, 1, table.getRelativeIndex(row, 1))
+	assert.Equal(t, 2, table.getRelativeIndex(row, 2))
+
+}
+
+func Test_RelativeColIndexesWithSpans(t *testing.T) {
+
+	row := iRow{
+		cols: []iCol{
+			{
+				span: 2,
+			},
+			{
+				span: 3,
+			},
+			{
+				span: 1,
+			},
+		},
+	}
+
+	table := New(nil)
+	assert.Equal(t, 1, table.getRealIndex(row, 2))
+	assert.Equal(t, 0, table.getRealIndex(row, 0))
+	assert.Equal(t, 2, table.getRealIndex(row, 5))
+
+	assert.Equal(t, 0, table.getRelativeIndex(row, 0))
+	assert.Equal(t, 2, table.getRelativeIndex(row, 1))
+	assert.Equal(t, 5, table.getRelativeIndex(row, 2))
 }
