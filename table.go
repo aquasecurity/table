@@ -554,7 +554,6 @@ func (t *Table) applyColSpans(formatted []iRow) []iRow {
 				}
 				start := t.getRealIndex(row, job.relativeCol)
 				stop := t.getRealIndex(row, job.relativeCol+job.span)
-				fmt.Printf("%d -> %d (%d) rel=%d\n", start, stop, job.span, job.relativeCol)
 				for j := start; j < stop; j++ {
 					amount := share
 					if j == stop-1 {
