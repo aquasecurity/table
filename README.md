@@ -488,11 +488,11 @@ func main() {
 ┌───────────────────┬────────┬─────────────────┐
 │      System       │ Status │   Last Check    │
 ├───────────────────┼────────┼─────────────────┤
-│ Life Support      │ OK     │ May 13 11:10:06 │
+│ Life Support      │ OK     │ May 13 11:13:11 │
 ├───────────────────┤        ├─────────────────┤
-│ Nuclear Generator │        │ May 13 11:09:06 │
+│ Nuclear Generator │        │ May 13 11:12:11 │
 ├───────────────────┼────────┼─────────────────┤
-│ Weapons Systems   │ FAIL   │ May 13 11:10:06 │
+│ Weapons Systems   │ FAIL   │ May 13 11:13:11 │
 ├───────────────────┼────────┤                 │
 │ Shields           │ OK     │                 │
 └───────────────────┴────────┴─────────────────┘
@@ -551,17 +551,7 @@ import (
 
 func main() {
 	t := table.New(os.Stdout)
-	t.SetDividers(table.Dividers{
-		ALL: "|",
-		NES: "|",
-		NSW: "|",
-		NE:  "|",
-		NW:  "|",
-		SW:  "|",
-		ES:  "|",
-		EW:  "-",
-		NS:  "|",
-	})
+	t.SetDividers(table.MarkdownDividers)
 
 	t.SetBorderTop(false)
 	t.SetBorderBottom(false)

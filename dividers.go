@@ -67,3 +67,14 @@ var StarDividers = Dividers{
 	EW:  "*",
 	NS:  "*",
 }
+var MarkdownDividers = Dividers{
+	ALL: "|",
+	NES: "|",
+	NSW: "|",
+	NE:  "|",
+	NW:  "|",
+	SW:  "|",
+	ES:  "|",
+	EW:  "-",
+	NS:  "|",
+}
