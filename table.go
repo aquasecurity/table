@@ -27,6 +27,7 @@ type Table struct {
 	cursorStyle      Style
 	rowLines         bool
 	autoMerge        bool
+	autoMergeHeaders bool
 	headerStyle      Style
 	headerColspans   map[int][]int
 	contentColspans  map[int][]int
@@ -143,6 +144,11 @@ func (t *Table) SetRowLines(enabled bool) {
 // SetAutoMerge sets whether to merge cells vertically if their content is the same and non-empty
 func (t *Table) SetAutoMerge(enabled bool) {
 	t.autoMerge = enabled
+}
+
+// SetAutoMergeHeaders sets whether to merge header cells vertically if their content is the same and non-empty
+func (t *Table) SetAutoMergeHeaders(enabled bool) {
+	t.autoMergeHeaders = enabled
 }
 
 // SetAlignment sets the alignment of each column. Should be specified for each column in the supplied data.
@@ -456,28 +462,50 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 	return t.applyColSpans(formatted)
 }
 
+// e.g. 5 rows, 2nd with span 5, input 7 returns 3rd row
+func (t *Table) getRealIndex(row iRow, index int) int {
+	var relative int
+	for actual, col := range row.cols {
+		if relative == index {
+			return actual
+		}
+		relative += col.span
+	}
+	return len(row.cols)
+}
+
+func (t *Table) getRelativeIndex(row iRow, index int) int {
+	var relative int
+	for actual := 0; actual < len(row.cols) && actual < index; actual++ {
+		relative += row.cols[actual].span
+	}
+	return relative
+}
+
 func (t *Table) applyColSpans(formatted []iRow) []iRow {
 	type colSpanJob struct {
-		row  int
-		col  int
-		span int
+		row         int
+		relativeCol int
+		span        int
 	}
 	var jobs []colSpanJob
 	for i, row := range formatted {
 		for j, col := range row.cols {
 			if col.span > 1 {
 				jobs = append(jobs, colSpanJob{
-					row:  i,
-					col:  j,
-					span: col.span,
+					row:         i,
+					relativeCol: t.getRelativeIndex(row, j),
+					span:        col.span,
 				})
 			}
 		}
 	}
 	for _, job := range jobs {
 
+		realTargetColIndex := t.getRealIndex(formatted[job.row], job.relativeCol)
+
 		// grab the cell that has a col span applied
-		target := formatted[job.row].cols[job.col]
+		target := formatted[job.row].cols[realTargetColIndex]
 
 		// calculate the width required for this cell
 		targetWidth := target.MaxWidth()
@@ -489,7 +517,9 @@ func (t *Table) applyColSpans(formatted []iRow) []iRow {
 				continue
 			}
 			var rowWidth int
-			for j := job.col; j < job.col+job.span; j++ {
+			start := t.getRealIndex(row, job.relativeCol)
+			stop := t.getRealIndex(row, job.relativeCol+job.span)
+			for j := start; j < stop; j++ {
 				rowWidth += row.cols[j].width
 			}
 			if rowWidth > childrenWidth {
@@ -498,18 +528,18 @@ func (t *Table) applyColSpans(formatted []iRow) []iRow {
 		}
 		childrenWidth += (job.span - 1) * (1 + (2 * t.padding))
 
-		fmt.Printf("Target width: %d Child width: %d", targetWidth, childrenWidth)
-
 		switch {
 		case childrenWidth == targetWidth:
 			// everything is somehow magically fine
+			target.width = childrenWidth
+			formatted[job.row].cols[realTargetColIndex] = target
 		case childrenWidth > targetWidth:
 			// we need to grow our target cell to make it aligned with the children
 			for i := range target.lines {
 				target.lines[i] = align(target.lines[i], childrenWidth, target.alignment)
 			}
 			target.width = childrenWidth
-			formatted[job.row].cols[job.col] = target
+			formatted[job.row].cols[realTargetColIndex] = target
 		default:
 			// we need to extend the children to align with the wide cell
 			// we can do this by sharing the extra space between them
@@ -517,14 +547,17 @@ func (t *Table) applyColSpans(formatted []iRow) []iRow {
 			share := available / job.span
 			remainder := available - (share * (job.span - 1))
 
-			// allocate each child some of the room
+			// allocate each child some room
 			for i, row := range formatted {
 				if i == job.row { // skip the row we're working on
 					continue
 				}
-				for j := job.col; j < job.col+job.span; j++ {
+				start := t.getRealIndex(row, job.relativeCol)
+				stop := t.getRealIndex(row, job.relativeCol+job.span)
+				fmt.Printf("%d -> %d (%d) rel=%d\n", start, stop, job.span, job.relativeCol)
+				for j := start; j < stop; j++ {
 					amount := share
-					if j == job.col+job.span-1 {
+					if j == stop-1 {
 						amount = remainder
 					}
 					row.cols[j].width += amount
@@ -534,7 +567,8 @@ func (t *Table) applyColSpans(formatted []iRow) []iRow {
 				}
 				formatted[i] = row
 			}
-
+			target.width = targetWidth
+			formatted[job.row].cols[realTargetColIndex] = target
 		}
 
 	}
@@ -543,17 +577,13 @@ func (t *Table) applyColSpans(formatted []iRow) []iRow {
 
 func (t *Table) mergeContent(formatted []iRow) []iRow {
 
-	if !t.autoMerge {
-		return formatted
-	}
-
 	// flag cols as mergeAbove where content matches and is non-empty
 	for c := 0; c < len(formatted[0].cols); c++ {
 		var previousContent string
 		var prevHeader bool
 		var allowed bool
 		for r, row := range formatted {
-			allowed = !(row.header || row.footer || prevHeader)
+			allowed = (row.header && t.autoMergeHeaders) || (!row.header && !row.footer && !prevHeader && t.autoMerge)
 			prevHeader = row.header
 			var current string
 			for _, line := range row.cols[c].lines {
@@ -570,15 +600,15 @@ func (t *Table) mergeContent(formatted []iRow) []iRow {
 }
 
 func (t *Table) renderRows() {
-	var prevHeader bool
+	var lastRow iRow
 	for _, row := range t.formatted {
-		t.renderRow(row, prevHeader)
-		prevHeader = row.header
+		t.renderRow(row, lastRow)
+		lastRow = row
 	}
 }
 
-func (t *Table) renderRow(row iRow, prevHeader bool) {
-	t.renderLineAbove(row, prevHeader)
+func (t *Table) renderRow(row iRow, prev iRow) {
+	t.renderLineAbove(row, prev)
 
 	for y := 0; y < row.height; y++ {
 		if t.borders.Left {
@@ -656,10 +686,10 @@ func (t *Table) getColspan(header bool, footer bool, row int, col int) int {
 }
 
 // renders the line above a row
-func (t *Table) renderLineAbove(row iRow, prevHeader bool) {
+func (t *Table) renderLineAbove(row iRow, prev iRow) {
 
 	// don't draw top border if disabled
-	if (row.first && !t.borders.Top) || (!prevHeader && !t.rowLines && !row.first) {
+	if (row.first && !t.borders.Top) || (!prev.header && !t.rowLines && !row.first) {
 		return
 	}
 
@@ -667,6 +697,20 @@ func (t *Table) renderLineAbove(row iRow, prevHeader bool) {
 	for i, col := range row.cols {
 
 		prevIsMerged := i > 0 && row.cols[i-1].mergeAbove
+
+		relativeIndex := t.getRelativeIndex(row, i)
+
+		var aboveIsSpanned bool
+		for j, prevCol := range prev.cols {
+			prevRel := t.getRelativeIndex(prev, j)
+			if prevRel >= relativeIndex {
+				break
+			}
+			if prevRel+prevCol.span > relativeIndex {
+				aboveIsSpanned = true
+				break
+			}
+		}
 
 		switch {
 		case col.first && !t.borders.Left:
@@ -681,10 +725,16 @@ func (t *Table) renderLineAbove(row iRow, prevHeader bool) {
 			t.print(t.dividers.NES)
 		case col.mergeAbove && prevIsMerged:
 			t.print(t.dividers.NS)
-		case col.mergeAbove:
+		case col.mergeAbove && !aboveIsSpanned:
 			t.print(t.dividers.NSW)
-		case prevIsMerged:
+		case col.mergeAbove:
+			t.print(t.dividers.SW)
+		case prevIsMerged && !aboveIsSpanned:
 			t.print(t.dividers.NES)
+		case prevIsMerged:
+			t.print(t.dividers.ES)
+		case aboveIsSpanned:
+			t.print(t.dividers.ESW)
 		default:
 			t.print(t.dividers.ALL)
 		}

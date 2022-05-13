@@ -579,13 +579,13 @@ func Test_HeaderColSpanLargerHeading(t *testing.T) {
 	table.AddRow("4", "5", "6")
 	table.Render()
 	assertMultilineEqual(t, `
-┌───┬───────┐
-│ A │ B & C │
-├───┼───┬───┤
-│ 1 │ 2 │ 3 │
-├───┼───┼───┤
-│ 4 │ 5 │ 6 │
-└───┴───┴───┘
+┌───┬────────────────────────┐
+│ A │ This is a long heading │
+├───┼───────────┬────────────┤
+│ 1 │ 2         │ 3          │
+├───┼───────────┼────────────┤
+│ 4 │ 5         │ 6          │
+└───┴───────────┴────────────┘
 `, "\n"+builder.String())
 }
 
@@ -598,13 +598,13 @@ func Test_HeaderColSpanSmallerHeading(t *testing.T) {
 	table.AddRow("4", "5", "6")
 	table.Render()
 	assertMultilineEqual(t, `
-┌───┬───────┐
-│ A │ B & C │
-├───┼───┬───┤
-│ 1 │ 2 │ 3 │
-├───┼───┼───┤
-│ 4 │ 5 │ 6 │
-└───┴───┴───┘
+┌───┬────────────────────────────┐
+│ A │             B              │
+├───┼───┬────────────────────────┤
+│ 1 │ 2 │ This is some long data │
+├───┼───┼────────────────────────┤
+│ 4 │ 5 │ 6                      │
+└───┴───┴────────────────────────┘
 `, "\n"+builder.String())
 }
 
@@ -612,8 +612,9 @@ func Test_HeaderColSpanTrivyKubernetesStyle(t *testing.T) {
 	builder := &strings.Builder{}
 	table := New(builder)
 	table.SetHeaders("Namespace", "Resource", "Vulnerabilities", "Misconfigurations")
-	table.AddHeaders("", "", "Critical", "High", "Critical", "High")
+	table.AddHeaders("Namespace", "Resource", "Critical", "High", "Critical", "High")
 	table.SetHeaderColSpans(0, 1, 1, 2, 2)
+	table.SetAutoMergeHeaders(true)
 	table.AddRow("default", "Deployment/app", "2", "5", "0", "3")
 	table.AddRow("default", "Ingress/test", "-", "-", "1", "0")
 	table.AddRow("default", "Service/test", "0", "0", "3", "0")
@@ -637,8 +638,9 @@ func Test_HeaderColSpanTrivyKubernetesStyleFull(t *testing.T) {
 	builder := &strings.Builder{}
 	table := New(builder)
 	table.SetHeaders("Namespace", "Resource", "Vulnerabilities", "Misconfigurations")
-	table.AddHeaders("", "", "Critical", "High", "Medium", "Low", "Unknown", "Critical", "High", "Medium", "Low", "Unknown")
+	table.AddHeaders("Namespace", "Resource", "Critical", "High", "Medium", "Low", "Unknown", "Critical", "High", "Medium", "Low", "Unknown")
 	table.SetHeaderColSpans(0, 1, 1, 5, 5)
+	table.SetAutoMergeHeaders(true)
 	table.AddRow("default", "Deployment/app", "2", "5", "7", "8", "0", "0", "3", "5", "19", "0")
 	table.AddRow("default", "Ingress/test", "-", "-", "-", "-", "-", "1", "0", "2", "17", "0")
 	table.AddRow("default", "Service/test", "0", "0", "0", "1", "0", "3", "0", "4", "9", "0")
@@ -656,4 +658,56 @@ func Test_HeaderColSpanTrivyKubernetesStyleFull(t *testing.T) {
 │ default   │ Service/test   │ 0        │ 0    │ 0      │ 1   │ 0       │ 3        │ 0    │ 4      │ 9   │ 0       │
 └───────────┴────────────────┴──────────┴──────┴────────┴─────┴─────────┴──────────┴──────┴────────┴─────┴─────────┘
 `, "\n"+builder.String())
+}
+
+func Test_RelativeColIndexesSimple(t *testing.T) {
+
+	row := iRow{
+		cols: []iCol{
+			{
+				span: 1,
+			},
+			{
+				span: 1,
+			},
+			{
+				span: 1,
+			},
+		},
+	}
+
+	table := New(nil)
+	assert.Equal(t, 0, table.getRealIndex(row, 0))
+	assert.Equal(t, 1, table.getRealIndex(row, 1))
+	assert.Equal(t, 2, table.getRealIndex(row, 2))
+	assert.Equal(t, 0, table.getRelativeIndex(row, 0))
+	assert.Equal(t, 1, table.getRelativeIndex(row, 1))
+	assert.Equal(t, 2, table.getRelativeIndex(row, 2))
+
+}
+
+func Test_RelativeColIndexesWithSpans(t *testing.T) {
+
+	row := iRow{
+		cols: []iCol{
+			{
+				span: 2,
+			},
+			{
+				span: 3,
+			},
+			{
+				span: 1,
+			},
+		},
+	}
+
+	table := New(nil)
+	assert.Equal(t, 1, table.getRealIndex(row, 2))
+	assert.Equal(t, 0, table.getRealIndex(row, 0))
+	assert.Equal(t, 2, table.getRealIndex(row, 5))
+
+	assert.Equal(t, 0, table.getRelativeIndex(row, 0))
+	assert.Equal(t, 2, table.getRelativeIndex(row, 1))
+	assert.Equal(t, 5, table.getRelativeIndex(row, 2))
 }
