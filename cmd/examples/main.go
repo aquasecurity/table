@@ -28,6 +28,9 @@ func main() {
 
 	var output string
 	for _, example := range examples {
+		if !example.IsDir() {
+			continue
+		}
 		source, err := ioutil.ReadFile(filepath.Join("_examples", example.Name(), "main.go"))
 		if err != nil {
 			panic(err)
