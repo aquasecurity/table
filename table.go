@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/mattn/go-runewidth"
+	runewidth "github.com/mattn/go-runewidth"
 )
 
 // Table holds information required to render a table to the terminal

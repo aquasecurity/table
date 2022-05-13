@@ -1,9 +1,10 @@
 package table
 
 import (
-	"github.com/mattn/go-runewidth"
 	"strings"
 	"unicode/utf8"
+
+	runewidth "github.com/mattn/go-runewidth"
 )
 
 type ansiBlob []ansiSegment
