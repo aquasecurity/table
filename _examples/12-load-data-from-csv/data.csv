@@ -1,0 +1,4 @@
+Id,Date,Message
+1,2022-05-12,"Hello world!"
+2,2022-05-12,"These messages are loaded from a CSV file."
+3,2022-05-13,"Incredible!"

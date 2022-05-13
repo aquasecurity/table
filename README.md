@@ -15,6 +15,7 @@ This is a Go module for rendering tables in the terminal.
 - :left_right_arrow: Set alignments on a per-column basis, with separate settings for headers/footers
 - :triangular_ruler: Intelligently wrap/pad/measure ANSI coloured input
 - :fire: Support for double-width unicode characters
+- :bar_chart: Load data from CSV files
 
 ## Examples
 
@@ -487,14 +488,54 @@ func main() {
 ┌───────────────────┬────────┬─────────────────┐
 │      System       │ Status │   Last Check    │
 ├───────────────────┼────────┼─────────────────┤
-│ Life Support      │ OK     │ May 13 08:54:29 │
+│ Life Support      │ OK     │ May 13 09:09:30 │
 ├───────────────────┤        ├─────────────────┤
-│ Nuclear Generator │        │ May 13 08:53:29 │
+│ Nuclear Generator │        │ May 13 09:08:30 │
 ├───────────────────┼────────┼─────────────────┤
-│ Weapons Systems   │ FAIL   │ May 13 08:54:29 │
+│ Weapons Systems   │ FAIL   │ May 13 09:09:30 │
 ├───────────────────┼────────┤                 │
 │ Shields           │ OK     │                 │
 └───────────────────┴────────┴─────────────────┘
+
+```
+
+### Example: Load Data From Csv
+```go
+package main
+
+import (
+	"os"
+
+	"github.com/aquasecurity/table"
+)
+
+func main() {
+
+	f, err := os.Open("./_examples/12-load-data-from-csv/data.csv")
+	if err != nil {
+		panic(err)
+	}
+
+	t := table.New(os.Stdout)
+	if err := t.LoadCSV(f, true); err != nil {
+		panic(err)
+	}
+	t.Render()
+}
+
+```
+
+#### Output
+```
+┌────┬────────────┬────────────────────────────────────────────┐
+│ Id │    Date    │                  Message                   │
+├────┼────────────┼────────────────────────────────────────────┤
+│ 1  │ 2022-05-12 │ Hello world!                               │
+├────┼────────────┼────────────────────────────────────────────┤
+│ 2  │ 2022-05-12 │ These messages are loaded from a CSV file. │
+├────┼────────────┼────────────────────────────────────────────┤
+│ 3  │ 2022-05-13 │ Incredible!                                │
+└────┴────────────┴────────────────────────────────────────────┘
 
 ```
 <!--/eg-->

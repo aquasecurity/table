@@ -1,10 +1,12 @@
 package table
 
 import (
+	"encoding/csv"
 	"fmt"
-	"github.com/mattn/go-runewidth"
 	"io"
 	"strings"
+
+	"github.com/mattn/go-runewidth"
 )
 
 // Table holds information required to render a table to the terminal
@@ -180,6 +182,32 @@ func (t *Table) AddRow(cols ...string) {
 // AddRows adds multiple rows to the table. Each argument is a row, i.e. a slice of column values.
 func (t *Table) AddRows(rows ...[]string) {
 	t.data = append(t.data, rows...)
+}
+
+// LoadCSV loads CSV data from a reader and adds it to the table. Existing rows/headers/footers are retained.
+func (t *Table) LoadCSV(r io.Reader, hasHeaders bool) error {
+	cr := csv.NewReader(r)
+
+	if hasHeaders {
+		headers, err := cr.Read()
+		if err != nil {
+			return err
+		}
+		t.SetHeaders(headers...)
+	}
+
+	for {
+		data, err := cr.Read()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+		t.AddRow(data...)
+	}
+
+	return nil
 }
 
 func (t *Table) getAlignment(colIndex int, header bool, footer bool) Alignment {

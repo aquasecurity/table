@@ -465,3 +465,30 @@ func Test_Unicode(t *testing.T) {
 └─────────────────────────────┴───┴───┘
 `, "\n"+builder.String())
 }
+
+func TestCSV(t *testing.T) {
+
+	input := strings.NewReader(`Id,Date,Message
+1,2022-05-12,"Hello world!"
+2,2022-05-12,"These messages are loaded from a CSV file."
+3,2022-05-13,"Incredible!"`)
+
+	builder := &strings.Builder{}
+	table := New(builder)
+	if err := table.LoadCSV(input, true); err != nil {
+		panic(err)
+	}
+	table.Render()
+
+	assert.Equal(t, `
+┌────┬────────────┬────────────────────────────────────────────┐
+│ Id │    Date    │                  Message                   │
+├────┼────────────┼────────────────────────────────────────────┤
+│ 1  │ 2022-05-12 │ Hello world!                               │
+├────┼────────────┼────────────────────────────────────────────┤
+│ 2  │ 2022-05-12 │ These messages are loaded from a CSV file. │
+├────┼────────────┼────────────────────────────────────────────┤
+│ 3  │ 2022-05-13 │ Incredible!                                │
+└────┴────────────┴────────────────────────────────────────────┘
+`, "\n"+builder.String())
+}
