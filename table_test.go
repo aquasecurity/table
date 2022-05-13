@@ -492,3 +492,24 @@ func TestCSV(t *testing.T) {
 └────┴────────────┴────────────────────────────────────────────┘
 `, "\n"+builder.String())
 }
+
+func Test_MultipleHeaderRows(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("A", "B", "C")
+	table.AddHeaders("D", "E", "F")
+	table.AddRow("1", "22", "333")
+	table.AddRow("4444", "55555", "666666")
+	table.Render()
+	assert.Equal(t, `
+┌──────┬───────┬────────┐
+│  A   │   B   │   C    │
+├──────┼───────┼────────┤
+│  D   │   E   │   F    │
+├──────┼───────┼────────┤
+│ 1    │ 22    │ 333    │
+├──────┼───────┼────────┤
+│ 4444 │ 55555 │ 666666 │
+└──────┴───────┴────────┘
+`, "\n"+builder.String())
+}

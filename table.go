@@ -14,7 +14,7 @@ type Table struct {
 	w                io.Writer
 	data             [][]string
 	formatted        []iRow
-	headers          []string
+	headers          [][]string
 	footers          []string
 	alignments       []Alignment
 	headerAlignments []Alignment
@@ -41,6 +41,7 @@ type iRow struct {
 
 type iCol struct {
 	original   string
+	span       int
 	lines      []ansiBlob
 	width      int
 	first      bool
@@ -148,7 +149,12 @@ func (t *Table) SetFooterAlignment(columns ...Alignment) {
 
 // SetHeaders set the headers used for the table.
 func (t *Table) SetHeaders(headers ...string) {
-	t.headers = headers
+	t.headers = [][]string{headers}
+}
+
+// AddHeaders adds a row of headers to the table.
+func (t *Table) AddHeaders(headers ...string) {
+	t.headers = append(t.headers, headers)
 }
 
 // SetHeaderStyle set the style used for headers
@@ -236,7 +242,7 @@ func (t *Table) formatData() {
 
 	// find the most columns we have in any given row, header, or footer
 	var maxCols int
-	for _, r := range append(t.data, t.headers, t.footers) {
+	for _, r := range append(append(t.data, t.headers...), t.footers) {
 		if len(r) > maxCols {
 			maxCols = len(r)
 		}
@@ -244,23 +250,25 @@ func (t *Table) formatData() {
 
 	// add headers
 	if len(t.headers) > 0 {
-		headerRow := iRow{
-			header: true,
-			footer: false,
-			cols:   nil,
-			first:  true,
-			last:   len(t.data)+len(t.footers) == 0,
+		for i, headerSet := range t.headers {
+			headerRow := iRow{
+				header: true,
+				footer: false,
+				cols:   nil,
+				first:  i == 0,
+				last:   i == len(t.headers)-1 && len(t.data)+len(t.footers) == 0,
+			}
+			for i, heading := range headerSet {
+				headerRow.cols = append(headerRow.cols, iCol{
+					original:  heading,
+					width:     runewidth.StringWidth(heading),
+					first:     i == 0,
+					last:      i == maxCols-1,
+					alignment: t.getAlignment(i, true, false),
+				})
+			}
+			formatted = append(formatted, headerRow)
 		}
-		for i, heading := range t.headers {
-			headerRow.cols = append(headerRow.cols, iCol{
-				original:  heading,
-				width:     runewidth.StringWidth(heading),
-				first:     i == 0,
-				last:      i == maxCols-1,
-				alignment: t.getAlignment(i, true, false),
-			})
-		}
-		formatted = append(formatted, headerRow)
 	}
 
 	// add rows
