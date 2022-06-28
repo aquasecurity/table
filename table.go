@@ -22,7 +22,7 @@ type Table struct {
 	borders          Borders
 	lineStyle        Style
 	dividers         Dividers
-	wrapTextAt       int
+	maxColumnWidth   int
 	padding          int
 	cursorStyle      Style
 	rowLines         bool
@@ -91,7 +91,7 @@ func New(w io.Writer) *Table {
 		},
 		lineStyle:       StyleNormal,
 		dividers:        UnicodeDividers,
-		wrapTextAt:      60,
+		maxColumnWidth:  60,
 		padding:         1,
 		rowLines:        true,
 		autoMerge:       false,
@@ -215,6 +215,11 @@ func (t *Table) AddRow(cols ...string) {
 // AddRows adds multiple rows to the table. Each argument is a row, i.e. a slice of column values.
 func (t *Table) AddRows(rows ...[]string) {
 	t.data = append(t.data, rows...)
+}
+
+// SetColumnMaxWidth sets the max column width
+func (t *Table) SetColumnMaxWidth(maxColumnWidth int) {
+	t.maxColumnWidth = maxColumnWidth
 }
 
 // LoadCSV loads CSV data from a reader and adds it to the table. Existing rows/headers/footers are retained.
@@ -411,7 +416,7 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 	for r, row := range formatted {
 		maxLines := 0
 		for c, col := range row.cols {
-			wrapped := wrapText(col.original, t.wrapTextAt)
+			wrapped := wrapText(col.original, t.maxColumnWidth)
 			formatted[r].cols[c].lines = wrapped
 			if len(wrapped) > maxLines {
 				maxLines = len(wrapped)
