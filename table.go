@@ -441,12 +441,11 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 	for r, row := range formatted {
 		maxLines := 0
 		for c, col := range row.cols {
-			wrapped := []ansiBlob{newANSI(col.original)}
 			wrapLen := t.maxColumnWidth
 			if !enableWrapping {
 				wrapLen = runewidth.StringWidth(col.original)
 			}
-			wrapped = wrapText(col.original, wrapLen)
+			wrapped := wrapText(col.original, wrapLen)
 			formatted[r].cols[c].lines = wrapped
 			if len(wrapped) > maxLines {
 				maxLines = len(wrapped)
