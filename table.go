@@ -4,9 +4,11 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	runewidth "github.com/mattn/go-runewidth"
+	"golang.org/x/term"
 )
 
 // Table holds information required to render a table to the terminal
@@ -32,6 +34,7 @@ type Table struct {
 	headerColspans   map[int][]int
 	contentColspans  map[int][]int
 	footerColspans   map[int][]int
+	availableWidth   int
 }
 
 type iRow struct {
@@ -75,6 +78,15 @@ type Borders struct {
 
 // New creates a new Table
 func New(w io.Writer) *Table {
+
+	availableWidth := 80
+	if w == os.Stdout {
+		width, _, _ := term.GetSize(int(os.Stdout.Fd()))
+		if width > 0 {
+			availableWidth = width
+		}
+	}
+
 	return &Table{
 		w:                w,
 		data:             nil,
@@ -98,6 +110,7 @@ func New(w io.Writer) *Table {
 		headerColspans:  make(map[int][]int),
 		contentColspans: make(map[int][]int),
 		footerColspans:  make(map[int][]int),
+		availableWidth:  availableWidth,
 	}
 }
 
@@ -412,11 +425,28 @@ func (t *Table) equaliseRows(formatted []iRow, maxCols int) []iRow {
 
 func (t *Table) formatContent(formatted []iRow) []iRow {
 
+	var maxWidth int
+	for _, row := range formatted {
+		rowWidth := 1
+		for _, col := range row.cols {
+			rowWidth += col.width + (t.padding * 2) + 1
+		}
+		if rowWidth > maxWidth {
+			maxWidth = rowWidth
+		}
+	}
+	enableWrapping := t.availableWidth < maxWidth
+
 	// wrap text
 	for r, row := range formatted {
 		maxLines := 0
 		for c, col := range row.cols {
-			wrapped := wrapText(col.original, t.maxColumnWidth)
+			wrapped := []ansiBlob{newANSI(col.original)}
+			wrapLen := t.maxColumnWidth
+			if !enableWrapping {
+				wrapLen = runewidth.StringWidth(col.original)
+			}
+			wrapped = wrapText(col.original, wrapLen)
 			formatted[r].cols[c].lines = wrapped
 			if len(wrapped) > maxLines {
 				maxLines = len(wrapped)
@@ -589,10 +619,7 @@ func (t *Table) mergeContent(formatted []iRow) []iRow {
 		for r, row := range formatted {
 			allowed = (row.header && t.autoMergeHeaders) || (!row.header && !row.footer && !prevHeader && t.autoMerge)
 			prevHeader = row.header
-			var current string
-			for _, line := range row.cols[c].lines {
-				current += line.String()
-			}
+			current := row.cols[c].original
 			merge := current == previousContent && strings.TrimSpace(current) != ""
 			row.cols[c].mergeAbove = merge && allowed
 			previousContent = current
