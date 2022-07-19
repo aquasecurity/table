@@ -711,3 +711,30 @@ func Test_RelativeColIndexesWithSpans(t *testing.T) {
 	assert.Equal(t, 2, table.getRelativeIndex(row, 1))
 	assert.Equal(t, 5, table.getRelativeIndex(row, 2))
 }
+
+func Test_HeaderColSpanVariation(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("Service", "Misconfigurations", "Last Scanned")
+	table.AddHeaders("Service", "Critical", "High", "Medium", "Low", "Unknown", "Last Scanned")
+	table.SetRowLines(false)
+	table.SetHeaderAlignment(AlignLeft, AlignCenter, AlignCenter, AlignCenter, AlignCenter, AlignCenter, AlignLeft)
+	table.SetAlignment(AlignLeft, AlignRight, AlignRight, AlignRight, AlignRight, AlignRight, AlignLeft)
+	table.SetAutoMergeHeaders(true)
+	table.SetHeaderColSpans(0, 1, 5, 1)
+	table.AddRow("ec2", "1", "2", "5", "0", "3", "2 hours ago")
+	table.AddRow("ecs", "0", "-", "-", "1", "0", "just now")
+	table.AddRow("eks", "7", "0", "0", "3", "0", "127 hours ago")
+	table.Render()
+	assertMultilineEqual(t, `
+┌─────────┬──────────────────────────────────────────────────┬───────────────┐
+│ Service │                Misconfigurations                 │ Last Scanned  │
+│         ├──────────┬──────────────┬────────┬─────┬─────────┤               │
+│         │ Critical │     High     │ Medium │ Low │ Unknown │               │
+├─────────┼──────────┼──────────────┼────────┼─────┼─────────┼───────────────┤
+│ ec2     │        1 │            2 │      5 │   0 │       3 │ 2 hours ago   │
+│ ecs     │        0 │            - │      - │   1 │       0 │ just now      │
+│ eks     │        7 │            0 │      0 │   3 │       0 │ 127 hours ago │
+└─────────┴──────────┴──────────────┴────────┴─────┴─────────┴───────────────┘
+`, "\n"+builder.String())
+}
