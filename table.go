@@ -603,25 +603,61 @@ func (t *Table) applyColSpans(formatted []iRow) []iRow {
 			target.width = targetWidth
 			formatted[job.row].cols[realTargetColIndex] = target
 		}
-
 	}
+
+	var lastColMaxWidth int
+	for r, row := range formatted {
+		col := row.cols[len(row.cols)-1]
+		if t.getColspan(row.header, row.footer, r, len(row.cols)-1) > 1 {
+			continue
+		}
+		width := col.width
+		if width > lastColMaxWidth {
+			lastColMaxWidth = width
+		}
+	}
+	for r, row := range formatted {
+		c := len(row.cols) - 1
+		if t.getColspan(row.header, row.footer, r, c) > 1 {
+			continue
+		}
+		width := row.cols[c].width
+		if width < lastColMaxWidth {
+			row.cols[c].width = lastColMaxWidth
+			for k, line := range row.cols[c].lines {
+				row.cols[c].lines[k] = align(line, lastColMaxWidth, row.cols[c].alignment)
+			}
+			formatted[r] = row
+		}
+	}
+
 	return formatted
 }
 
 func (t *Table) mergeContent(formatted []iRow) []iRow {
 
+	columnCount := t.calcColumnWidth(0, formatted[0])
+	lastValues := make([]string, columnCount)
+
 	// flag cols as mergeAbove where content matches and is non-empty
-	for c := 0; c < len(formatted[0].cols); c++ {
-		var previousContent string
+	for c := 0; c < columnCount; c++ {
 		var prevHeader bool
 		var allowed bool
 		for r, row := range formatted {
+			// don't merge columns with colspan > 1
+			if t.getColspan(row.header, row.footer, r, c) > 1 {
+				continue
+			}
+			if c >= len(row.cols) {
+				continue
+			}
+			relativeIndex := t.getRelativeIndex(row, c)
 			allowed = (row.header && t.autoMergeHeaders) || (!row.header && !row.footer && !prevHeader && t.autoMerge)
 			prevHeader = row.header
 			current := row.cols[c].original
-			merge := current == previousContent && strings.TrimSpace(current) != ""
+			merge := current == lastValues[relativeIndex] && strings.TrimSpace(current) != ""
 			row.cols[c].mergeAbove = merge && allowed
-			previousContent = current
+			lastValues[relativeIndex] = current
 			formatted[r] = row
 		}
 	}
