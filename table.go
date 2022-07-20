@@ -13,28 +13,29 @@ import (
 
 // Table holds information required to render a table to the terminal
 type Table struct {
-	w                io.Writer
-	data             [][]string
-	formatted        []iRow
-	headers          [][]string
-	footers          [][]string
-	alignments       []Alignment
-	headerAlignments []Alignment
-	footerAlignments []Alignment
-	borders          Borders
-	lineStyle        Style
-	dividers         Dividers
-	maxColumnWidth   int
-	padding          int
-	cursorStyle      Style
-	rowLines         bool
-	autoMerge        bool
-	autoMergeHeaders bool
-	headerStyle      Style
-	headerColspans   map[int][]int
-	contentColspans  map[int][]int
-	footerColspans   map[int][]int
-	availableWidth   int
+	w                   io.Writer
+	data                [][]string
+	formatted           []iRow
+	headers             [][]string
+	footers             [][]string
+	alignments          []Alignment
+	headerAlignments    []Alignment
+	footerAlignments    []Alignment
+	borders             Borders
+	lineStyle           Style
+	dividers            Dividers
+	maxColumnWidth      int
+	padding             int
+	cursorStyle         Style
+	rowLines            bool
+	autoMerge           bool
+	autoMergeHeaders    bool
+	headerStyle         Style
+	headerColspans      map[int][]int
+	contentColspans     map[int][]int
+	footerColspans      map[int][]int
+	availableWidth      int
+	headerVerticalAlign Alignment
 }
 
 type iRow struct {
@@ -55,6 +56,7 @@ type iCol struct {
 	last       bool
 	height     int
 	mergeAbove bool
+	mergeBelow bool
 	alignment  Alignment
 }
 
@@ -101,16 +103,17 @@ func New(w io.Writer) *Table {
 			Right:  true,
 			Bottom: true,
 		},
-		lineStyle:       StyleNormal,
-		dividers:        UnicodeDividers,
-		maxColumnWidth:  60,
-		padding:         1,
-		rowLines:        true,
-		autoMerge:       false,
-		headerColspans:  make(map[int][]int),
-		contentColspans: make(map[int][]int),
-		footerColspans:  make(map[int][]int),
-		availableWidth:  availableWidth,
+		lineStyle:           StyleNormal,
+		dividers:            UnicodeDividers,
+		maxColumnWidth:      60,
+		padding:             1,
+		rowLines:            true,
+		autoMerge:           false,
+		headerColspans:      make(map[int][]int),
+		contentColspans:     make(map[int][]int),
+		footerColspans:      make(map[int][]int),
+		availableWidth:      availableWidth,
+		headerVerticalAlign: AlignTop,
 	}
 }
 
@@ -174,6 +177,10 @@ func (t *Table) SetAlignment(columns ...Alignment) {
 // Default alignment for headers is AlignCenter
 func (t *Table) SetHeaderAlignment(columns ...Alignment) {
 	t.headerAlignments = columns
+}
+
+func (t *Table) SetHeaderVerticalAlignment(a Alignment) {
+	t.headerVerticalAlign = a
 }
 
 // SetFooterAlignment sets the alignment of each footer. Should be specified for each footer in the supplied data.
@@ -453,9 +460,7 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 		}
 		// ensure all cols have the same number of lines for a given row
 		for c, col := range row.cols {
-			for len(col.lines) < maxLines {
-				col.lines = append(col.lines, newANSI(""))
-			}
+			col.lines = t.alignVertically(col.lines, AlignTop, maxLines)
 			col.height = len(col.lines)
 			formatted[r].cols[c] = col
 		}
@@ -494,6 +499,20 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 	}
 
 	return t.applyColSpans(formatted)
+}
+
+func (t *Table) alignVertically(lines []ansiBlob, alignment Alignment, maxLines int) []ansiBlob {
+	switch alignment {
+	case AlignBottom:
+		for len(lines) < maxLines {
+			lines = append([]ansiBlob{newANSI("")}, lines...)
+		}
+	default:
+		for len(lines) < maxLines {
+			lines = append(lines, newANSI(""))
+		}
+	}
+	return lines
 }
 
 // e.g. 5 rows, 2nd with span 5, input 7 returns 3rd row
@@ -638,6 +657,7 @@ func (t *Table) mergeContent(formatted []iRow) []iRow {
 
 	columnCount := t.calcColumnWidth(0, formatted[0])
 	lastValues := make([]string, columnCount)
+	lastIndexes := make([]int, columnCount)
 
 	// flag cols as mergeAbove where content matches and is non-empty
 	for c := 0; c < columnCount; c++ {
@@ -657,7 +677,17 @@ func (t *Table) mergeContent(formatted []iRow) []iRow {
 			current := row.cols[c].original
 			merge := current == lastValues[relativeIndex] && strings.TrimSpace(current) != ""
 			row.cols[c].mergeAbove = merge && allowed
+			if merge && allowed {
+				lastIndex := lastIndexes[relativeIndex]
+				formatted[r-1].cols[lastIndex].mergeBelow = true
+				if t.headerVerticalAlign == AlignBottom {
+					buffer := row.cols[c].lines
+					row.cols[c].lines = formatted[r-1].cols[lastIndex].lines
+					formatted[r-1].cols[lastIndex].lines = buffer
+				}
+			}
 			lastValues[relativeIndex] = current
+			lastIndexes[relativeIndex] = c
 			formatted[r] = row
 		}
 	}
@@ -675,7 +705,6 @@ func (t *Table) renderRows() {
 
 func (t *Table) renderRow(row iRow, prev iRow) {
 	t.renderLineAbove(row, prev)
-
 	for y := 0; y < row.height; y++ {
 		if t.borders.Left {
 			t.setStyle(t.lineStyle)
@@ -686,7 +715,9 @@ func (t *Table) renderRow(row iRow, prev iRow) {
 			if t.padding > 0 {
 				t.print(strings.Repeat(" ", t.padding))
 			}
-			if col.mergeAbove {
+			if col.mergeAbove && t.headerVerticalAlign == AlignTop {
+				t.print(strings.Repeat(" ", col.width))
+			} else if col.mergeBelow && t.headerVerticalAlign == AlignBottom {
 				t.print(strings.Repeat(" ", col.width))
 			} else {
 				if row.header {

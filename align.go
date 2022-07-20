@@ -6,4 +6,6 @@ const (
 	AlignLeft Alignment = iota
 	AlignRight
 	AlignCenter
+	AlignBottom
+	AlignTop
 )
