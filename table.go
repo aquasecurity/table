@@ -36,6 +36,7 @@ type Table struct {
 	footerColspans      map[int][]int
 	availableWidth      int
 	headerVerticalAlign Alignment
+	fillWidth           bool
 }
 
 type iRow struct {
@@ -162,6 +163,11 @@ func (t *Table) SetAutoMerge(enabled bool) {
 	t.autoMerge = enabled
 }
 
+// SetFillWidth sets whether to fill the entire available width
+func (t *Table) SetFillWidth(enabled bool) {
+	t.fillWidth = enabled
+}
+
 // SetAutoMergeHeaders sets whether to merge header cells vertically if their content is the same and non-empty
 func (t *Table) SetAutoMergeHeaders(enabled bool) {
 	t.autoMergeHeaders = enabled
@@ -230,6 +236,11 @@ func (t *Table) SetDividers(d Dividers) {
 // AddRow adds a row to the table. Each argument is a column value.
 func (t *Table) AddRow(cols ...string) {
 	t.data = append(t.data, cols)
+}
+
+// SetAvailableWidth sets the available width for the table (defaults to terminal width when stdout is used)
+func (t *Table) SetAvailableWidth(w int) {
+	t.availableWidth = w
 }
 
 // AddRows adds multiple rows to the table. Each argument is a row, i.e. a slice of column values.
@@ -468,21 +479,40 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 		formatted[r].height = maxLines
 	}
 
+	spares := make([]int, len(formatted))
+	for r, row := range formatted {
+		spare := t.availableWidth - 1
+		for c, col := range row.cols {
+			spare -= col.MaxWidth() + (t.getColspan(row.header, row.footer, r, c) * ((t.padding * 2) + 1))
+		}
+		if spare < 0 {
+			spare = 0
+		}
+		spares[r] = spare
+	}
+
+	var extra int
+
 	// set width of each col, and align text
 	for c := 0; c < t.calcColumnWidth(0, formatted[0]); c++ { // for each col
 
 		// find max width for column across all rows
 		maxWidth := 0
-		for _, row := range formatted {
+		for r, row := range formatted {
 
 			if c >= len(row.cols) || row.cols[c].span > 1 {
 				// ignore columns with a colspan > 1 for now, we'll apply those next
 				continue
 			}
 
-			if row.cols[c].MaxWidth() > maxWidth {
-				maxWidth = row.cols[c].MaxWidth()
+			if t.fillWidth {
+				extra = spares[r] / len(row.cols)
 			}
+			width := row.cols[c].MaxWidth() + extra
+			if width > maxWidth {
+				maxWidth = width
+			}
+
 		}
 
 		// set uniform col width, and align all content

@@ -766,3 +766,51 @@ func Test_HeaderVerticalAlignBottom(t *testing.T) {
 └─────────┴──────────┴──────────────┴────────┴─────┴─────────┴───────────────┘
 `, "\n"+builder.String())
 }
+
+func Test_FillWidth(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("A", "B", "C")
+	table.AddRow("1", "2", "3")
+	table.AddRow("4", "5", "6")
+	table.SetAvailableWidth(19)
+	table.SetFillWidth(true)
+	table.Render()
+	assertMultilineEqual(t, `
+┌─────┬─────┬─────┐
+│  A  │  B  │  C  │
+├─────┼─────┼─────┤
+│ 1   │ 2   │ 3   │
+├─────┼─────┼─────┤
+│ 4   │ 5   │ 6   │
+└─────┴─────┴─────┘
+`, "\n"+builder.String())
+}
+
+func Test_HeaderColSpanTrivyKubernetesStyleFullWithFillWidth(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("Namespace", "Resource", "Vulnerabilities", "Misconfigurations")
+	table.AddHeaders("Namespace", "Resource", "Critical", "High", "Medium", "Low", "Unknown", "Critical", "High", "Medium", "Low", "Unknown")
+	table.SetHeaderColSpans(0, 1, 1, 5, 5)
+	table.SetAutoMergeHeaders(true)
+	table.SetAvailableWidth(100)
+	table.SetFillWidth(true)
+	table.AddRow("default", "Deployment/app", "2", "5", "7", "8", "0", "0", "3", "5", "19", "0")
+	table.AddRow("default", "Ingress/test", "-", "-", "-", "-", "-", "1", "0", "2", "17", "0")
+	table.AddRow("default", "Service/test", "0", "0", "0", "1", "0", "3", "0", "4", "9", "0")
+	table.Render()
+	assertMultilineEqual(t, `
+┌──────────────┬──────────────────┬──────────────────────────────────────────┬───────────────────────────────────────────┐
+│  Namespace   │     Resource     │             Vulnerabilities              │             Misconfigurations             │
+│              │                  ├──────────┬──────┬────────┬─────┬─────────┼──────────┬──────┬────────┬──────┬─────────┤
+│              │                  │ Critical │ High │ Medium │ Low │ Unknown │ Critical │ High │ Medium │ Low  │ Unknown │
+├──────────────┼──────────────────┼──────────┼──────┼────────┼─────┼─────────┼──────────┼──────┼────────┼──────┼─────────┤
+│ default      │ Deployment/app   │ 2        │ 5    │ 7      │ 8   │ 0       │ 0        │ 3    │ 5      │ 19   │ 0       │
+├──────────────┼──────────────────┼──────────┼──────┼────────┼─────┼─────────┼──────────┼──────┼────────┼──────┼─────────┤
+│ default      │ Ingress/test     │ -        │ -    │ -      │ -   │ -       │ 1        │ 0    │ 2      │ 17   │ 0       │
+├──────────────┼──────────────────┼──────────┼──────┼────────┼─────┼─────────┼──────────┼──────┼────────┼──────┼─────────┤
+│ default      │ Service/test     │ 0        │ 0    │ 0      │ 1   │ 0       │ 3        │ 0    │ 4      │ 9    │ 0       │
+└──────────────┴──────────────────┴──────────┴──────┴────────┴─────┴─────────┴──────────┴──────┴────────┴──────┴─────────┘
+`, "\n"+builder.String())
+}
