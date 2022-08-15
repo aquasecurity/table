@@ -491,6 +491,13 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 		spares[r] = spare
 	}
 
+	var min int
+	for _, spare := range spares {
+		if spare > 0 && (spare < min || min == 0) {
+			min = spare
+		}
+	}
+
 	var extra int
 
 	// set width of each col, and align text
@@ -498,7 +505,7 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 
 		// find max width for column across all rows
 		maxWidth := 0
-		for r, row := range formatted {
+		for _, row := range formatted {
 
 			if c >= len(row.cols) || row.cols[c].span > 1 {
 				// ignore columns with a colspan > 1 for now, we'll apply those next
@@ -506,7 +513,7 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 			}
 
 			if t.fillWidth {
-				extra = spares[r] / len(row.cols)
+				extra = min / len(row.cols)
 			}
 			width := row.cols[c].MaxWidth() + extra
 			if width > maxWidth {
