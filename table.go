@@ -479,24 +479,7 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 		formatted[r].height = maxLines
 	}
 
-	spares := make([]int, len(formatted))
-	for r, row := range formatted {
-		spare := t.availableWidth - 1
-		for c, col := range row.cols {
-			spare -= col.MaxWidth() + (t.getColspan(row.header, row.footer, r, c) * ((t.padding * 2) + 1))
-		}
-		if spare < 0 {
-			spare = 0
-		}
-		spares[r] = spare
-	}
-
-	var min int
-	for _, spare := range spares {
-		if spare > 0 && (spare < min || min == 0) {
-			min = spare
-		}
-	}
+	min := t.availableWidth - maxWidth
 
 	var extra int
 
@@ -513,7 +496,11 @@ func (t *Table) formatContent(formatted []iRow) []iRow {
 			}
 
 			if t.fillWidth {
-				extra = min / len(row.cols)
+				if c == len(row.cols)-1 {
+					extra = min - ((min / len(row.cols)) * (len(row.cols) - 1))
+				} else {
+					extra = min / len(row.cols)
+				}
 			}
 			width := row.cols[c].MaxWidth() + extra
 			if width > maxWidth {
