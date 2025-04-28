@@ -814,3 +814,19 @@ func Test_HeaderColSpanTrivyKubernetesStyleFullWithFillWidth(t *testing.T) {
 └──────────────┴──────────────────┴──────────┴──────┴────────┴─────┴─────────┴──────────┴──────┴────────┴──────┴─────────┘
 `, "\n"+builder.String())
 }
+
+func Test_TableIsEmpty(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("A", "B", "C")
+	assert.Equal(t, true, table.IsEmpty())
+}
+
+func Test_TableIsNotEmpty(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("A", "B", "C")
+	table.AddRow("1", "2", "3")
+	table.AddRow("4", "5", "6")
+	assert.Equal(t, false, table.IsEmpty())
+}
