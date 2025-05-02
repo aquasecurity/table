@@ -816,7 +816,8 @@ func (t *Table) getColspan(header bool, footer bool, row int, col int) int {
 func (t *Table) renderLineAbove(row iRow, prev iRow) {
 
 	// don't draw top border if disabled
-	if (row.first && !t.borders.Top) || (!prev.header && !t.rowLines && !row.first) {
+	if (row.first && !t.borders.Top) ||
+		(!prev.header && !row.footer && !t.rowLines && !row.first) {
 		return
 	}
 

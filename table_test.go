@@ -93,6 +93,26 @@ func Test_Footers(t *testing.T) {
 `, "\n"+builder.String())
 }
 
+func Test_Footers_No_RowLines(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetFooters("A", "B", "C")
+	table.SetRowLines(false)
+	table.AddRow("1", "2", "3")
+	table.AddRow("4", "5", "6")
+	table.AddRow("7", "8", "9")
+	table.Render()
+	assertMultilineEqual(t, `
+┌───┬───┬───┐
+│ 1 │ 2 │ 3 │
+│ 4 │ 5 │ 6 │
+│ 7 │ 8 │ 9 │
+├───┼───┼───┤
+│ A │ B │ C │
+└───┴───┴───┘
+`, "\n"+builder.String())
+}
+
 func Test_VaryingWidths(t *testing.T) {
 	builder := &strings.Builder{}
 	table := New(builder)
