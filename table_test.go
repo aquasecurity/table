@@ -830,3 +830,13 @@ func Test_TableIsNotEmpty(t *testing.T) {
 	table.AddRow("4", "5", "6")
 	assert.Equal(t, false, table.IsEmpty())
 }
+
+func Test_TableRowCount(t *testing.T) {
+	builder := &strings.Builder{}
+	table := New(builder)
+	table.SetHeaders("A", "B", "C")
+	assert.Equal(t, 0, table.RowCount())
+	table.AddRow("1", "2", "3")
+	table.AddRow("4", "5", "6")
+	assert.Equal(t, 2, table.RowCount())
+}
