@@ -939,3 +939,8 @@ func (t *Table) Render() {
 func (t *Table) IsEmpty() bool {
 	return len(t.data) == 0
 }
+
+// RowCount returns the number of rows in the table.
+func (t *Table) RowCount() int {
+	return len(t.data)
+}
